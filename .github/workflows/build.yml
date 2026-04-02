@@ -25,6 +25,9 @@ jobs:
               - 'index/**'
               - 'common/**'
               - 'tools.json'
+            myip:
+              - 'myip/**'
+              - 'common/**'
             text:
               - 'text/**'
               - 'common/**'
