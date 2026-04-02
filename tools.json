@@ -1,0 +1,18 @@
+{
+    "clock": {
+        "name": "Clock",
+        "description": "Simple digital clock with 12/24 hour and seconds preferences"
+    },
+    "dashboard": {
+        "name": "Dashboard",
+        "description": "Configurable dashboard displaying URLs in iframes: a full-width header, left column, and right column"
+    },
+    "text": {
+        "name": "Text",
+        "description": "Displays configurable text, useful as a label or note in a dashboard embed"
+    },
+    "weather-header": {
+        "name": "Weather Header",
+        "description": "Compact header widget showing the current date and today's/tomorrow's weather forecast, designed for dashboard embeds"
+    }
+}
