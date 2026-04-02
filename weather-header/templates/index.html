@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+
+{% block title %}Weather{% endblock %}
+
+{% block head %}
+<style>
+    body {
+        align-items: center;
+    }
+
+    .container {
+        justify-content: center;
+        min-height: 100vh;
+    }
+
+    .weather-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding: clamp(0.75rem, 2vw, 1.5rem);
+        gap: 1rem;
+    }
+
+    @media (max-width: 480px) {
+        .weather-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+
+    /* ── Date section ── */
+    .date-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    #weekday {
+        font-size: clamp(1.5rem, 5vw, 3rem);
+        font-weight: 700;
+        color: var(--fg);
+        line-height: 1.1;
+    }
+
+    #fulldate {
+        font-size: clamp(0.9rem, 2.5vw, 1.4rem);
+        color: var(--accent);
+        letter-spacing: 0.01em;
+    }
+
+    /* ── Weather section ── */
+    .weather-section {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.4rem;
+    }
+
+    @media (max-width: 480px) {
+        .weather-section {
+            align-items: flex-start;
+        }
+    }
+
+    .weather-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .weather-icon {
+        font-size: clamp(1.8rem, 5vw, 3rem);
+        line-height: 1;
+    }
+
+    .weather-info {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.1rem;
+    }
+
+    @media (max-width: 480px) {
+        .weather-info {
+            align-items: flex-start;
+        }
+    }
+
+    .weather-desc {
+        font-size: clamp(0.85rem, 2vw, 1.1rem);
+        color: var(--fg);
+        font-weight: 500;
+    }
+
+    .weather-temps {
+        font-size: clamp(0.85rem, 2vw, 1.1rem);
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .tomorrow-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--muted);
+    }
+
+    .tomorrow-label {
+        font-size: clamp(0.75rem, 1.8vw, 0.9rem);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .tomorrow-icon {
+        font-size: clamp(1rem, 2.5vw, 1.4rem);
+        line-height: 1;
+    }
+
+    .tomorrow-temps {
+        font-size: clamp(0.75rem, 1.8vw, 0.9rem);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .weather-location {
+        font-size: clamp(0.7rem, 1.5vw, 0.8rem);
+        color: var(--muted);
+        text-align: right;
+        margin-top: 0.1rem;
+    }
+
+    @media (max-width: 480px) {
+        .weather-location { text-align: left; }
+    }
+
+    .weather-placeholder {
+        font-size: clamp(0.85rem, 2vw, 1rem);
+        color: var(--muted);
+        font-style: italic;
+    }
+
+    /* ── Prefs ── */
+    .prefs-input {
+        background: var(--bg);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 0.3em 0.6em;
+        font-size: 0.85rem;
+        font-family: inherit;
+        width: 100%;
+        transition: border-color 0.15s;
+    }
+    .prefs-input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+    .prefs-input::placeholder {
+        color: var(--muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="weather-header">
+    <div class="date-section">
+        <div id="weekday"></div>
+        <div id="fulldate"></div>
+    </div>
+    <div class="weather-section">
+        <div id="today-row"></div>
+        <div id="tomorrow-row"></div>
+        <div id="weather-location" class="weather-location"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block prefs %}
+<div class="prefs-row">
+    <span class="prefs-label">Location</span>
+</div>
+<div>
+    <input class="prefs-input" id="location-input" type="text" placeholder="City name, e.g. London">
+</div>
+<div class="prefs-row">
+    <span class="prefs-label">Units</span>
+    <button class="prefs-toggle" id="btn-units"></button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+
+    var WMO = {
+        0:  { icon: '☀️',  desc: 'Clear sky' },
+        1:  { icon: '🌤️', desc: 'Mainly clear' },
+        2:  { icon: '⛅',  desc: 'Partly cloudy' },
+        3:  { icon: '🌥️', desc: 'Overcast' },
+        45: { icon: '🌫️', desc: 'Fog' },
+        48: { icon: '🌫️', desc: 'Icy fog' },
+        51: { icon: '🌦️', desc: 'Light drizzle' },
+        53: { icon: '🌦️', desc: 'Drizzle' },
+        55: { icon: '🌦️', desc: 'Heavy drizzle' },
+        61: { icon: '🌧️', desc: 'Light rain' },
+        63: { icon: '🌧️', desc: 'Rain' },
+        65: { icon: '🌧️', desc: 'Heavy rain' },
+        71: { icon: '🌨️', desc: 'Light snow' },
+        73: { icon: '🌨️', desc: 'Snow' },
+        75: { icon: '🌨️', desc: 'Heavy snow' },
+        77: { icon: '🌨️', desc: 'Snow grains' },
+        80: { icon: '🌦️', desc: 'Light showers' },
+        81: { icon: '🌧️', desc: 'Showers' },
+        82: { icon: '🌧️', desc: 'Heavy showers' },
+        85: { icon: '🌨️', desc: 'Snow showers' },
+        86: { icon: '🌨️', desc: 'Heavy snow showers' },
+        95: { icon: '⛈️',  desc: 'Thunderstorm' },
+        96: { icon: '⛈️',  desc: 'Thunderstorm w/ hail' },
+        99: { icon: '⛈️',  desc: 'Thunderstorm w/ hail' },
+    };
+
+    function wmo(code) {
+        return WMO[code] || { icon: '🌡️', desc: 'Unknown' };
+    }
+
+    function getPrefs() {
+        var p = new URLSearchParams(window.location.search);
+        return {
+            location: p.get('location') || '',
+            units:    p.get('units') || 'c',
+        };
+    }
+
+    function setParam(key, val) {
+        var p = new URLSearchParams(window.location.search);
+        p.set(key, val);
+        history.replaceState(null, '', '?' + p.toString());
+    }
+
+    function fmtTemp(t, units) {
+        return Math.round(t) + '°' + (units === 'f' ? 'F' : 'C');
+    }
+
+    // ── Date display ──
+    function updateDate() {
+        var now = new Date();
+        document.getElementById('weekday').textContent = DAYS[now.getDay()];
+        document.getElementById('fulldate').textContent =
+            MONTHS[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+    }
+
+    // ── Weather rendering ──
+    function renderWeather(today, tomorrow, resolvedName, units) {
+        var todayInfo = wmo(today.code);
+        var tomorrowInfo = wmo(tomorrow.code);
+
+        document.getElementById('today-row').innerHTML =
+            '<div class="weather-row">' +
+            '<span class="weather-icon">' + todayInfo.icon + '</span>' +
+            '<div class="weather-info">' +
+            '<span class="weather-desc">' + todayInfo.desc + '</span>' +
+            '<span class="weather-temps">' +
+                fmtTemp(today.min, units) + ' / ' + fmtTemp(today.max, units) +
+            '</span>' +
+            '</div>' +
+            '</div>';
+
+        document.getElementById('tomorrow-row').innerHTML =
+            '<div class="tomorrow-row">' +
+            '<span class="tomorrow-label">Tomorrow</span>' +
+            '<span class="tomorrow-icon">' + tomorrowInfo.icon + '</span>' +
+            '<span class="tomorrow-temps">' +
+                fmtTemp(tomorrow.min, units) + ' / ' + fmtTemp(tomorrow.max, units) +
+            '</span>' +
+            '</div>';
+
+        document.getElementById('weather-location').textContent = resolvedName;
+    }
+
+    function renderPlaceholder(msg) {
+        document.getElementById('today-row').innerHTML =
+            '<div class="weather-placeholder">' + msg + '</div>';
+        document.getElementById('tomorrow-row').innerHTML = '';
+        document.getElementById('weather-location').textContent = '';
+    }
+
+    // ── API calls ──
+    function geocode(name) {
+        var url = 'https://geocoding-api.open-meteo.com/v1/search?name=' +
+            encodeURIComponent(name) + '&count=1&language=en&format=json';
+        return fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.results || !data.results.length) {
+                    throw new Error('Location not found');
+                }
+                var r = data.results[0];
+                return { lat: r.latitude, lon: r.longitude, name: r.name + (r.country ? ', ' + r.country : '') };
+            });
+    }
+
+    function fetchWeather(lat, lon, units) {
+        var url = 'https://api.open-meteo.com/v1/forecast' +
+            '?latitude=' + lat +
+            '&longitude=' + lon +
+            '&daily=weather_code,temperature_2m_max,temperature_2m_min' +
+            '&temperature_unit=' + (units === 'f' ? 'fahrenheit' : 'celsius') +
+            '&forecast_days=2' +
+            '&timezone=auto';
+        return fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var d = data.daily;
+                return {
+                    today:    { code: d.weather_code[0], max: d.temperature_2m_max[0], min: d.temperature_2m_min[0] },
+                    tomorrow: { code: d.weather_code[1], max: d.temperature_2m_max[1], min: d.temperature_2m_min[1] },
+                };
+            });
+    }
+
+    // ── Main load ──
+    var cachedGeo = null;
+
+    function loadWeather(forceGeocode) {
+        var prefs = getPrefs();
+        if (!prefs.location) {
+            renderPlaceholder('Set a location in preferences');
+            return;
+        }
+        var geoPromise = (cachedGeo && !forceGeocode)
+            ? Promise.resolve(cachedGeo)
+            : geocode(prefs.location).then(function (g) { cachedGeo = g; return g; });
+
+        geoPromise
+            .then(function (geo) {
+                return fetchWeather(geo.lat, geo.lon, prefs.units).then(function (w) {
+                    renderWeather(w.today, w.tomorrow, geo.name, prefs.units);
+                });
+            })
+            .catch(function (err) {
+                renderPlaceholder(err.message || 'Weather unavailable');
+            });
+    }
+
+    // ── Controls ──
+    var btnUnits = document.getElementById('btn-units');
+    var locationInput = document.getElementById('location-input');
+
+    function updateControls() {
+        var prefs = getPrefs();
+        btnUnits.textContent = prefs.units === 'f' ? '°F' : '°C';
+        btnUnits.classList.toggle('active', prefs.units === 'f');
+        locationInput.value = prefs.location;
+    }
+
+    btnUnits.addEventListener('click', function () {
+        var prefs = getPrefs();
+        setParam('units', prefs.units === 'f' ? 'c' : 'f');
+        updateControls();
+        cachedGeo = null;
+        loadWeather(false);
+    });
+
+    locationInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { locationInput.blur(); }
+    });
+
+    locationInput.addEventListener('blur', function () {
+        var val = locationInput.value.trim();
+        if (val !== getPrefs().location) {
+            setParam('location', val);
+            cachedGeo = null;
+            loadWeather(true);
+        }
+    });
+
+    // ── Init ──
+    updateDate();
+    updateControls();
+    loadWeather(true);
+
+    setInterval(updateDate, 60000);
+    setInterval(function () { loadWeather(false); }, 30 * 60 * 1000);
+})();
+</script>
+{% endblock %}

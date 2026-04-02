@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block head %}
+<style>
+    /* Full-width layout — dashboard is the outer container */
+    .container {
+        max-width: none;
+        padding: 0;
+    }
+
+    /* Wider prefs popup for the multi-section config UI */
+    #prefs-popup {
+        width: 420px;
+        max-height: calc(100vh - 5rem);
+        overflow-y: auto;
+    }
+
+    /* ── Dashboard layout ── */
+    #dashboard-header {
+        width: 100%;
+    }
+
+    #dashboard-columns {
+        width: 100%;
+        display: flex;
+        align-items: flex-start;
+    }
+
+    .dashboard-col {
+        flex: 1;
+        min-width: 0;
+    }
+
+    #dashboard-header iframe,
+    .dashboard-col iframe {
+        width: 100%;
+        border: none;
+        display: block;
+    }
+
+    /* ── Empty state ── */
+    #dashboard-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        color: var(--muted);
+        font-size: 1rem;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    /* ── Config UI inside prefs popup ── */
+    .config-section-title {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+    }
+
+    .config-entry {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        padding: 0.45rem 0.5rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        margin-bottom: 0.4rem;
+    }
+
+    .config-entry-row {
+        display: flex;
+        gap: 0.4rem;
+        align-items: center;
+    }
+
+    .config-entry-label {
+        font-size: 0.72rem;
+        color: var(--muted);
+        width: 44px;
+        flex-shrink: 0;
+    }
+
+    .config-entry input[type="text"] {
+        flex: 1;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--fg);
+        font-size: 0.8rem;
+        padding: 0.2em 0.45em;
+        font-family: inherit;
+        min-width: 0;
+    }
+
+    .config-entry input[type="number"] {
+        width: 68px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--fg);
+        font-size: 0.8rem;
+        padding: 0.2em 0.45em;
+        font-family: inherit;
+    }
+
+    .config-entry input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+    .config-px-label {
+        font-size: 0.72rem;
+        color: var(--muted);
+    }
+
+    .config-btn-remove {
+        background: none;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 0.8rem;
+        line-height: 1;
+        padding: 0.15em 0.35em;
+        font-family: inherit;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+    .config-btn-remove:hover {
+        color: #e07070;
+        border-color: #70303080;
+    }
+
+    .config-btn-add {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--accent);
+        cursor: pointer;
+        font-size: 0.78rem;
+        padding: 0.25em 0.6em;
+        font-family: inherit;
+        width: 100%;
+        text-align: left;
+        margin-bottom: 0.1rem;
+    }
+    .config-btn-add:hover {
+        border-color: var(--accent);
+    }
+
+    .config-divider {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 0.5rem 0;
+    }
+
+    .config-apply {
+        width: 100%;
+        background: var(--accent);
+        color: var(--bg);
+        border: none;
+        border-radius: 5px;
+        padding: 0.4em 1em;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+    }
+    .config-apply:hover {
+        opacity: 0.88;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="dashboard-header"></div>
+<div id="dashboard-columns" class="dashboard-columns">
+    <div id="dashboard-left" class="dashboard-col"></div>
+    <div id="dashboard-right" class="dashboard-col"></div>
+</div>
+<div id="dashboard-empty">Click the gear icon to configure your dashboard.</div>
+{% endblock %}
+
+{% block prefs %}
+<div class="config-section">
+    <div class="config-section-title">Header</div>
+    <div id="config-header-list"></div>
+    <button class="config-btn-add" data-section="header">+ Add entry</button>
+</div>
+<hr class="config-divider">
+<div class="config-section">
+    <div class="config-section-title">Left Column</div>
+    <div id="config-left-list"></div>
+    <button class="config-btn-add" data-section="left">+ Add entry</button>
+</div>
+<hr class="config-divider">
+<div class="config-section">
+    <div class="config-section-title">Right Column</div>
+    <div id="config-right-list"></div>
+    <button class="config-btn-add" data-section="right">+ Add entry</button>
+</div>
+<hr class="config-divider">
+<button class="config-apply" id="config-apply">Apply</button>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    function getConfig() {
+        var p = new URLSearchParams(window.location.search);
+        var raw = p.get('config');
+        if (!raw) return { header: [], left: [], right: [] };
+        try {
+            return JSON.parse(atob(raw));
+        } catch (e) {
+            return { header: [], left: [], right: [] };
+        }
+    }
+
+    function saveConfig(cfg) {
+        var p = new URLSearchParams(window.location.search);
+        p.set('config', btoa(JSON.stringify(cfg)));
+        history.replaceState(null, '', '?' + p.toString());
+    }
+
+    function makeIframe(entry) {
+        var iframe = document.createElement('iframe');
+        iframe.src = entry.url;
+        iframe.style.height = (entry.height || 400) + 'px';
+        return iframe;
+    }
+
+    function renderDashboard(cfg) {
+        var headerEl  = document.getElementById('dashboard-header');
+        var leftEl    = document.getElementById('dashboard-left');
+        var rightEl   = document.getElementById('dashboard-right');
+        var colsEl    = document.getElementById('dashboard-columns');
+        var emptyEl   = document.getElementById('dashboard-empty');
+
+        headerEl.innerHTML = '';
+        leftEl.innerHTML   = '';
+        rightEl.innerHTML  = '';
+
+        var hasContent = cfg.header.length || cfg.left.length || cfg.right.length;
+
+        if (!hasContent) {
+            headerEl.style.display = 'none';
+            colsEl.style.display   = 'none';
+            emptyEl.style.display  = 'flex';
+            return;
+        }
+
+        emptyEl.style.display = 'none';
+
+        cfg.header.forEach(function (entry) {
+            headerEl.appendChild(makeIframe(entry));
+        });
+        headerEl.style.display = cfg.header.length ? '' : 'none';
+
+        cfg.left.forEach(function (entry) {
+            leftEl.appendChild(makeIframe(entry));
+        });
+        cfg.right.forEach(function (entry) {
+            rightEl.appendChild(makeIframe(entry));
+        });
+
+        colsEl.style.display = (cfg.left.length || cfg.right.length) ? 'flex' : 'none';
+    }
+
+    // ── Config UI ──────────────────────────────────────────────
+
+    var configState = getConfig();
+
+    function escAttr(s) {
+        return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+
+    function buildEntryEl(section, idx) {
+        var entry = configState[section][idx];
+        var div = document.createElement('div');
+        div.className = 'config-entry';
+        div.innerHTML =
+            '<div class="config-entry-row">' +
+                '<span class="config-entry-label">URL</span>' +
+                '<input type="text" class="entry-url" value="' + escAttr(entry.url) + '" placeholder="https://">' +
+                '<button class="config-btn-remove" title="Remove">&times;</button>' +
+            '</div>' +
+            '<div class="config-entry-row">' +
+                '<span class="config-entry-label">Height</span>' +
+                '<input type="number" class="entry-height" value="' + (entry.height || 400) + '" min="50" max="9999" step="50">' +
+                '<span class="config-px-label">px</span>' +
+            '</div>';
+
+        div.querySelector('.entry-url').addEventListener('input', function () {
+            configState[section][idx].url = this.value;
+        });
+        div.querySelector('.entry-height').addEventListener('input', function () {
+            configState[section][idx].height = parseInt(this.value, 10) || 400;
+        });
+        div.querySelector('.config-btn-remove').addEventListener('click', function (e) {
+            e.stopPropagation();
+            configState[section].splice(idx, 1);
+            renderConfigSection(section);
+        });
+
+        return div;
+    }
+
+    function renderConfigSection(section) {
+        var listEl = document.getElementById('config-' + section + '-list');
+        listEl.innerHTML = '';
+        configState[section].forEach(function (_, i) {
+            listEl.appendChild(buildEntryEl(section, i));
+        });
+    }
+
+    function renderConfigUI() {
+        renderConfigSection('header');
+        renderConfigSection('left');
+        renderConfigSection('right');
+    }
+
+    document.querySelectorAll('.config-btn-add').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var section = btn.dataset.section;
+            configState[section].push({ url: '', height: 400 });
+            renderConfigSection(section);
+        });
+    });
+
+    document.getElementById('config-apply').addEventListener('click', function (e) {
+        e.stopPropagation();
+        saveConfig(configState);
+        renderDashboard(configState);
+    });
+
+    // Re-sync config state each time the prefs popup is opened
+    document.getElementById('prefs-gear').addEventListener('click', function () {
+        configState = getConfig();
+        renderConfigUI();
+    });
+
+    // Initial render
+    renderConfigUI();
+    renderDashboard(configState);
+})();
+</script>
+{% endblock %}
