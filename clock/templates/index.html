@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Clock{% endblock %}
+
+{% block head %}
+<style>
+    body {
+        align-items: center;
+    }
+
+    .container {
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        gap: 1rem;
+    }
+
+    .clock-display {
+        display: flex;
+        align-items: baseline;
+        gap: 0.3em;
+        line-height: 1;
+    }
+
+    #time {
+        font-family: sans-serif;
+        font-size: clamp(3rem, 18vw, 12rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--fg);
+        font-variant-numeric: tabular-nums;
+    }
+
+    #ampm {
+        font-family: sans-serif;
+        font-size: clamp(1.2rem, 6vw, 4rem);
+        font-weight: 400;
+        color: var(--muted);
+    }
+
+    #ampm:empty {
+        display: none;
+    }
+
+    #date {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: clamp(1.2rem, 4vw, 2.2rem);
+        color: var(--accent);
+        letter-spacing: 0.01em;
+        min-height: 1.4em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="clock-display">
+    <span id="time"></span>
+    <span id="ampm"></span>
+</div>
+<div id="date"></div>
+{% endblock %}
+
+{% block prefs %}
+<div class="prefs-row">
+    <span class="prefs-label">Seconds</span>
+    <button class="prefs-toggle" id="btn-seconds"></button>
+</div>
+<div class="prefs-row">
+    <span class="prefs-label">Format</span>
+    <button class="prefs-toggle" id="btn-format"></button>
+</div>
+<div>
+    <div class="prefs-label" style="margin-bottom:0.5rem">Date</div>
+    <div class="prefs-radio-group">
+        <label><input type="radio" name="date" value="none"> None</label>
+        <label><input type="radio" name="date" value="weekday"> Weekday, Month Day</label>
+        <label><input type="radio" name="date" value="mdy"> Month Day, Year</label>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+    var DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    function getPrefs() {
+        var p = new URLSearchParams(window.location.search);
+        return {
+            showSeconds: p.get('seconds') !== '0',
+            use12h:      p.get('format') === '12',
+            date:        p.get('date') || 'none',
+        };
+    }
+
+    function setParam(key, val) {
+        var p = new URLSearchParams(window.location.search);
+        p.set(key, val);
+        history.replaceState(null, '', '?' + p.toString());
+    }
+
+    var timeEl    = document.getElementById('time');
+    var ampmEl    = document.getElementById('ampm');
+    var dateEl    = document.getElementById('date');
+    var btnSec    = document.getElementById('btn-seconds');
+    var btnFmt    = document.getElementById('btn-format');
+    var radios    = document.querySelectorAll('input[name="date"]');
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function tick() {
+        var prefs = getPrefs();
+        var now   = new Date();
+        var hours = now.getHours();
+        var mins  = pad(now.getMinutes());
+        var ampm  = '';
+
+        if (prefs.use12h) {
+            ampm  = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+        }
+
+        var text = pad(hours) + ':' + mins;
+        if (prefs.showSeconds) text += ':' + pad(now.getSeconds());
+
+        timeEl.textContent = text;
+        ampmEl.textContent = ampm;
+
+        if (prefs.date === 'weekday') {
+            dateEl.textContent = DAYS[now.getDay()] + ', ' + MONTHS[now.getMonth()] + ' ' + now.getDate();
+        } else if (prefs.date === 'mdy') {
+            dateEl.textContent = MONTHS[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear();
+        } else {
+            dateEl.textContent = '';
+        }
+    }
+
+    function updateControls() {
+        var prefs = getPrefs();
+        btnSec.textContent = prefs.showSeconds ? 'On' : 'Off';
+        btnSec.classList.toggle('active', prefs.showSeconds);
+        btnFmt.textContent = prefs.use12h ? '12h' : '24h';
+        btnFmt.classList.toggle('active', prefs.use12h);
+        radios.forEach(function (r) { r.checked = r.value === prefs.date; });
+    }
+
+    btnSec.addEventListener('click', function () {
+        setParam('seconds', getPrefs().showSeconds ? '0' : '1');
+        updateControls();
+        tick();
+    });
+
+    btnFmt.addEventListener('click', function () {
+        setParam('format', getPrefs().use12h ? '24' : '12');
+        updateControls();
+        tick();
+    });
+
+    radios.forEach(function (r) {
+        r.addEventListener('change', function () {
+            setParam('date', r.value);
+            tick();
+        });
+    });
+
+    updateControls();
+    tick();
+    setInterval(tick, 1000);
+})();
+</script>
+{% endblock %}

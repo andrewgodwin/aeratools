@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Text{% endblock %}
+
+{% block head %}
+<style>
+    .container {
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+    }
+
+    #display {
+        font-size: clamp(1.2rem, 4vw, 2.5rem);
+        color: var(--fg);
+        white-space: pre-wrap;
+        word-break: break-word;
+        text-align: center;
+        padding: 2rem 1rem;
+    }
+
+    .prefs-textarea {
+        width: 100%;
+        background: var(--bg);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 0.5rem;
+        font-family: inherit;
+        font-size: 0.875rem;
+        resize: vertical;
+        min-height: 6rem;
+    }
+    .prefs-textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="display"></div>
+{% endblock %}
+
+{% block prefs %}
+<div>
+    <div class="prefs-label" style="margin-bottom:0.5rem">Text</div>
+    <textarea class="prefs-textarea" id="pref-text" placeholder="Enter text to display…"></textarea>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var display = document.getElementById('display');
+    var textarea = document.getElementById('pref-text');
+
+    function getText() {
+        return new URLSearchParams(window.location.search).get('text') || '';
+    }
+
+    function setText(val) {
+        var p = new URLSearchParams(window.location.search);
+        p.set('text', val);
+        history.replaceState(null, '', '?' + p.toString());
+    }
+
+    function render() {
+        display.textContent = getText();
+    }
+
+    textarea.value = getText();
+    render();
+
+    textarea.addEventListener('input', function () {
+        setText(textarea.value);
+        render();
+    });
+})();
+</script>
+{% endblock %}
