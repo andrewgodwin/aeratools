@@ -5,6 +5,12 @@
         "icon": "bi-clock",
         "group": "Widgets"
     },
+    "index": {
+        "name": "Index",
+        "description": "Overview of all available tools",
+        "icon": "bi-list",
+        "group": "__hidden__"
+    },
     "dashboard": {
         "name": "Dashboard",
         "description": "Configurable dashboard displaying URLs in iframes: a full-width header, left column, and right column",

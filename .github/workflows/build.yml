@@ -59,7 +59,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.tool }}
-          build-contexts: common=common root=.
+          build-contexts: |
+            common=common
+            root=.
           push: true
           tags: ghcr.io/andrewgodwin/aeratools/${{ matrix.tool }}:latest
           cache-from: type=gha,scope=${{ matrix.tool }}
