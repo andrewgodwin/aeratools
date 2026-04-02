@@ -35,5 +35,11 @@
         "description": "Compact header widget showing the current date and today's/tomorrow's weather forecast, designed for dashboard embeds",
         "icon": "bi-cloud-sun",
         "group": "Widgets"
+    },
+    "myip": {
+        "name": "My IP",
+        "description": "Displays your public IP address, resolving via X-Forwarded-For when behind a proxy",
+        "icon": "bi-globe",
+        "group": "Utilities"
     }
 }

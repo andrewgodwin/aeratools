@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}My IP{% endblock %}
+
+{% block head %}
+<style>
+    body {
+        align-items: center;
+    }
+
+    .container {
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        gap: 1.5rem;
+    }
+
+    .ip-label {
+        font-size: clamp(0.8rem, 2vw, 1rem);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+    }
+
+    .ip-address {
+        font-family: monospace;
+        font-size: clamp(1.8rem, 8vw, 4rem);
+        font-weight: 700;
+        color: var(--fg);
+        letter-spacing: -0.01em;
+        word-break: break-all;
+        text-align: center;
+    }
+
+    .copy-btn {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-family: inherit;
+        padding: 0.3em 0.8em;
+        transition: color 0.15s, border-color 0.15s;
+    }
+
+    .copy-btn:hover {
+        color: var(--fg);
+        border-color: var(--accent);
+    }
+
+    .copy-btn.copied {
+        color: var(--accent);
+        border-color: var(--accent);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ip-label">Your IP address</div>
+<div class="ip-address" id="ip-display">{{ ip }}</div>
+<button class="copy-btn" id="copy-btn" onclick="copyIP()">Copy</button>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyIP() {
+    var ip = document.getElementById('ip-display').textContent.trim();
+    var btn = document.getElementById('copy-btn');
+    navigator.clipboard.writeText(ip).then(function () {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function () {
+            btn.textContent = 'Copy';
+            btn.classList.remove('copied');
+        }, 1500);
+    });
+}
+</script>
+{% endblock %}
