@@ -12,7 +12,7 @@ with open("tools.json") as f:
 # Pre-group tools preserving insertion order within each group
 _groups = defaultdict(list)
 for key, tool in _tools_raw.items():
-    if tool.get("group") == "hidden":
+    if tool.get("group") == "__hidden__":
         continue
     _groups[tool.get("group", "Other")].append({**tool, "key": key})
 GROUPS = dict(_groups)

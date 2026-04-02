@@ -3,19 +3,26 @@
         "name": "Clock",
         "description": "Simple digital clock with 12/24 hour and seconds preferences",
         "icon": "bi-clock",
-        "group": "Widgets"
+        "group": "Widgets",
+        "aliases": []
     },
     "index": {
         "name": "Index",
         "description": "Overview of all available tools",
         "icon": "bi-list",
-        "group": "__hidden__"
+        "group": "__hidden__",
+        "aliases": [
+            "www"
+        ]
     },
     "dashboard": {
         "name": "Dashboard",
         "description": "Configurable dashboard displaying URLs in iframes: a full-width header, left column, and right column",
         "icon": "bi-grid-3x3-gap",
-        "group": "Layout"
+        "group": "Layout",
+        "aliases": [
+            "dash"
+        ]
     },
     "text": {
         "name": "Text",
