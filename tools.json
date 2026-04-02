@@ -1,18 +1,26 @@
 {
     "clock": {
         "name": "Clock",
-        "description": "Simple digital clock with 12/24 hour and seconds preferences"
+        "description": "Simple digital clock with 12/24 hour and seconds preferences",
+        "icon": "bi-clock",
+        "group": "Widgets"
     },
     "dashboard": {
         "name": "Dashboard",
-        "description": "Configurable dashboard displaying URLs in iframes: a full-width header, left column, and right column"
+        "description": "Configurable dashboard displaying URLs in iframes: a full-width header, left column, and right column",
+        "icon": "bi-grid-3x3-gap",
+        "group": "Layout"
     },
     "text": {
         "name": "Text",
-        "description": "Displays configurable text, useful as a label or note in a dashboard embed"
+        "description": "Displays configurable text, useful as a label or note in a dashboard embed",
+        "icon": "bi-fonts",
+        "group": "Widgets"
     },
     "weather-header": {
         "name": "Weather Header",
-        "description": "Compact header widget showing the current date and today's/tomorrow's weather forecast, designed for dashboard embeds"
+        "description": "Compact header widget showing the current date and today's/tomorrow's weather forecast, designed for dashboard embeds",
+        "icon": "bi-cloud-sun",
+        "group": "Widgets"
     }
 }

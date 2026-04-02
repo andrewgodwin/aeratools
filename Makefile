@@ -1,4 +1,4 @@
-TOOLS = clock dashboard text weather-header
+TOOLS = clock dashboard index text weather-header
 
 build:
 	@for tool in $(TOOLS); do \

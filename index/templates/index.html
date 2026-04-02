@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}aeratools{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+    .index-header {
+        padding: 3rem 1.5rem 2rem;
+    }
+
+    .index-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--fg);
+    }
+
+    .index-header p {
+        margin-top: 0.4rem;
+        font-size: 0.9rem;
+        color: var(--muted);
+    }
+
+    .group {
+        padding: 0 1.5rem 2.5rem;
+    }
+
+    .group-title {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--muted);
+        margin-bottom: 0.9rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.5rem;
+    }
+
+    .tool-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .tool-card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        padding: 1.1rem 1.1rem 1rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        text-decoration: none;
+        color: inherit;
+        transition: border-color 0.15s, background 0.15s;
+    }
+
+    .tool-card:hover {
+        border-color: var(--accent);
+        background: var(--bg);
+    }
+
+    .tool-icon {
+        font-size: 1.75rem;
+        color: var(--accent);
+        line-height: 1;
+    }
+
+    .tool-name {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--fg);
+    }
+
+    .tool-desc {
+        font-size: 0.82rem;
+        color: var(--muted);
+        line-height: 1.45;
+    }
+
+    .tool-url {
+        font-size: 0.75rem;
+        color: var(--accent);
+        opacity: 0.7;
+        margin-top: auto;
+        padding-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="index-header">
+    <h1>aeratools</h1>
+    <p>A collection of single-purpose web tools.</p>
+</div>
+
+{% for group_name, tools in groups.items() %}
+<div class="group">
+    <div class="group-title">{{ group_name }}</div>
+    <div class="tool-grid">
+        {% for tool in tools %}
+        {% if root_domain %}
+        {% set href = "https://" ~ tool.key ~ "." ~ root_domain %}
+        {% else %}
+        {% set href = "#" %}
+        {% endif %}
+        <a class="tool-card" href="{{ href }}">
+            <div class="tool-icon"><i class="bi {{ tool.icon }}"></i></div>
+            <div class="tool-name">{{ tool.name }}</div>
+            <div class="tool-desc">{{ tool.description }}</div>
+            {% if root_domain %}
+            <div class="tool-url">{{ tool.key }}.{{ root_domain }}</div>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
