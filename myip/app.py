@@ -1,6 +1,7 @@
 import os
-from flask import Flask, render_template, request, jsonify
-from auth import register_auth_context
+
+from authentication import register_auth_context
+from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 app.config["ROOT_DOMAIN"] = os.environ.get("ROOT_DOMAIN", "")

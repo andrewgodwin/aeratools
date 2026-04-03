@@ -1,0 +1,66 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: file-contents-sorter
+        args: ["--ignore-case"]
+        files: ^(\.gitignore|\.dockerignore|requirements[-\w]*.txt)$
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+      - id: pretty-format-json
+        args: ["--autofix"]
+      - id: trailing-whitespace
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: "v3.21.2"
+    hooks:
+      - id: pyupgrade
+        args: [--py313-plus]
+
+  - repo: https://github.com/PyCQA/docformatter
+    rev: v1.7.7
+    hooks:
+      - id: docformatter
+        additional_dependencies: [tomli]
+        args:
+          [
+            --in-place,
+            --make-summary-multi-line,
+            --pre-summary-newline,
+            --close-quotes-on-newline,
+            --wrap-summaries=88,
+            --wrap-descriptions=88,
+          ]
+
+  - repo: https://github.com/psf/black
+    rev: 25.12.0
+    hooks:
+      - id: black
+
+  - repo: https://github.com/pycqa/isort
+    rev: 7.0.0
+    hooks:
+      - id: isort
+        args: ["--profile=black"]
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        args:
+          [
+            "--max-line-length=119",
+            "--ignore=E123,E128,E203,E266,E402,F405,E501,W503,E731,W601",
+          ]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        exclude: "^tests/"
+        args: ["--explicit-package-bases", "--ignore-missing-imports"]
+        additional_dependencies: ["types-pyyaml~=6.0", "flask"]

@@ -4,21 +4,24 @@ Storage abstraction - S3 or a local filesystem for development
 
 import fcntl
 import hashlib
-import os
-import boto3
 import json
+import os
+
+import boto3
 from botocore.exceptions import ClientError
 
 
 class StorageConflictError(ValueError):
-    """Raised when a conditional store fails due to an ETag mismatch."""
+    """
+    Raised when a conditional store fails due to an ETag mismatch.
+    """
 
     pass
 
 
 class S3Storage:
     """
-    S3-backed storage abstraction
+    S3-backed storage abstraction.
     """
 
     def __init__(
@@ -39,8 +42,8 @@ class S3Storage:
         """
         Fetch a stored object.
 
-        Returns (content, etag) or None if not found.
-        The etag can be passed to store() to enable optimistic concurrency.
+        Returns (content, etag) or None if not found. The etag can be passed to store()
+        to enable optimistic concurrency.
         """
         try:
             response = self.client.get_object(
@@ -59,8 +62,8 @@ class S3Storage:
         """
         Store an object.
 
-        If version (ETag) is provided, the write is conditional
-        and raises StorageConflictError if the object has been modified since retrieval.
+        If version (ETag) is provided, the write is conditional and raises
+        StorageConflictError if the object has been modified since retrieval.
         """
         kwargs = dict(
             Bucket=self.bucket,
@@ -85,7 +88,9 @@ class S3Storage:
 
 class LocalStorage:
     """
-    Local filesystem storage for development. Uses sha256 of file contents as the etag.
+    Local filesystem storage for development.
+
+    Uses sha256 of file contents as the etag.
     """
 
     def __init__(self, storage_dir: str):
@@ -130,7 +135,7 @@ class LocalStorage:
 
 def get_storage():
     """
-    Returns the appropriate storage class for the current environment
+    Returns the appropriate storage class for the current environment.
     """
     if "STORAGE_DIR" in os.environ:
         return LocalStorage(os.environ["STORAGE_DIR"])

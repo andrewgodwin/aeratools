@@ -2,8 +2,7 @@ import os
 import time
 
 import jwt
-from flask import request, redirect
-
+from flask import redirect, request
 
 COOKIE_NAME = "aeratools_session"
 SESSION_DURATION = 30 * 24 * 3600  # 30 days
@@ -14,7 +13,9 @@ def _secret():
 
 
 def get_current_user(req=None):
-    """Return the signed-in email from the session cookie, or None."""
+    """
+    Return the signed-in email from the session cookie, or None.
+    """
     secret = _secret()
     if not secret:
         return None
@@ -31,7 +32,9 @@ def get_current_user(req=None):
 
 
 def make_session_token(email):
-    """Create a signed JWT for the given email."""
+    """
+    Create a signed JWT for the given email.
+    """
     now = int(time.time())
     return jwt.encode(
         {"email": email, "iat": now, "exp": now + SESSION_DURATION},
@@ -41,7 +44,9 @@ def make_session_token(email):
 
 
 def set_session_cookie(response, email, root_domain):
-    """Attach the session cookie to a response."""
+    """
+    Attach the session cookie to a response.
+    """
     response.set_cookie(
         COOKIE_NAME,
         make_session_token(email),
@@ -55,7 +60,9 @@ def set_session_cookie(response, email, root_domain):
 
 
 def clear_session_cookie(response, root_domain):
-    """Remove the session cookie from a response."""
+    """
+    Remove the session cookie from a response.
+    """
     response.delete_cookie(
         COOKIE_NAME,
         domain=f".{root_domain}" if root_domain else None,
@@ -64,7 +71,10 @@ def clear_session_cookie(response, root_domain):
 
 
 def register_auth_context(app):
-    """Inject `user` and `auth_url` into every template rendered by app."""
+    """
+    Inject `user` and `auth_url` into every template rendered by app.
+    """
+
     @app.context_processor
     def _inject():
         root_domain = os.environ.get("ROOT_DOMAIN", "")

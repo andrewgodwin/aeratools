@@ -1,52 +1,52 @@
 {
-    "clock": {
-        "name": "Clock",
-        "description": "Simple digital clock with 12/24 hour and seconds preferences",
-        "icon": "bi-clock",
-        "group": "Widgets",
-        "aliases": []
-    },
-    "index": {
-        "name": "Index",
-        "description": "Overview of all available tools",
-        "icon": "bi-list",
-        "group": "__hidden__",
-        "aliases": [
-            "www"
-        ]
-    },
-    "dashboard": {
-        "name": "Dashboard",
-        "description": "Configurable dashboard displaying URLs in iframes: a full-width header, left column, and right column",
-        "icon": "bi-grid-3x3-gap",
-        "group": "Layout",
-        "aliases": [
-            "dash"
-        ]
-    },
-    "text": {
-        "name": "Text",
-        "description": "Displays configurable text, useful as a label or note in a dashboard embed",
-        "icon": "bi-fonts",
-        "group": "Widgets"
-    },
-    "weather-header": {
-        "name": "Weather Header",
-        "description": "Compact header widget showing the current date and today's/tomorrow's weather forecast, designed for dashboard embeds",
-        "icon": "bi-cloud-sun",
-        "group": "Widgets"
-    },
-    "myip": {
-        "name": "My IP",
-        "description": "Displays your public IP address, resolving via X-Forwarded-For when behind a proxy",
-        "icon": "bi-globe",
-        "group": "Utilities"
-    },
-    "auth": {
-        "name": "Sign In",
-        "description": "Email-based magic link authentication; sets a session cookie used by tools with sign-in features",
-        "icon": "bi-person-circle",
-        "group": "__hidden__",
-        "aliases": []
-    }
+  "auth": {
+    "aliases": [],
+    "description": "Email-based magic link authentication; sets a session cookie used by tools with sign-in features",
+    "group": "__hidden__",
+    "icon": "bi-person-circle",
+    "name": "Sign In"
+  },
+  "clock": {
+    "aliases": [],
+    "description": "Simple digital clock with 12/24 hour and seconds preferences",
+    "group": "Widgets",
+    "icon": "bi-clock",
+    "name": "Clock"
+  },
+  "dashboard": {
+    "aliases": [
+      "dash"
+    ],
+    "description": "Configurable dashboard displaying URLs in iframes: a full-width header, left column, and right column",
+    "group": "Layout",
+    "icon": "bi-grid-3x3-gap",
+    "name": "Dashboard"
+  },
+  "index": {
+    "aliases": [
+      "www"
+    ],
+    "description": "Overview of all available tools",
+    "group": "__hidden__",
+    "icon": "bi-list",
+    "name": "Index"
+  },
+  "myip": {
+    "description": "Displays your public IP address, resolving via X-Forwarded-For when behind a proxy",
+    "group": "Utilities",
+    "icon": "bi-globe",
+    "name": "My IP"
+  },
+  "text": {
+    "description": "Displays configurable text, useful as a label or note in a dashboard embed",
+    "group": "Widgets",
+    "icon": "bi-fonts",
+    "name": "Text"
+  },
+  "weather-header": {
+    "description": "Compact header widget showing the current date and today's/tomorrow's weather forecast, designed for dashboard embeds",
+    "group": "Widgets",
+    "icon": "bi-cloud-sun",
+    "name": "Weather Header"
+  }
 }

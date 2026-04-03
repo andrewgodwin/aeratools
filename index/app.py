@@ -1,8 +1,9 @@
 import json
 import os
 from collections import defaultdict
+
+from authentication import register_auth_context
 from flask import Flask, render_template
-from auth import register_auth_context
 
 app = Flask(__name__)
 ROOT_DOMAIN = os.environ.get("ROOT_DOMAIN", "")
