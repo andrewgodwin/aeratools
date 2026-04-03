@@ -1,4 +1,5 @@
 import os
+import socket
 
 from flask import Flask, jsonify, render_template, request
 
@@ -19,8 +20,14 @@ def get_ip_info():
     else:
         client_ip = connecting_ip
 
+    try:
+        rdns = socket.gethostbyaddr(client_ip)[0] if client_ip else None
+    except (socket.herror, socket.gaierror):
+        rdns = None
+
     return {
         "ip": client_ip,
+        "rdns": rdns,
     }
 
 

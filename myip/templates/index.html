@@ -53,6 +53,14 @@
         color: var(--accent);
         border-color: var(--accent);
     }
+
+    .rdns {
+        font-family: monospace;
+        font-size: clamp(0.8rem, 2vw, 1rem);
+        color: var(--muted);
+        text-align: center;
+        word-break: break-all;
+    }
 </style>
 {% endblock %}
 
@@ -60,6 +68,7 @@
 <div class="ip-label">Your IP address</div>
 <div class="ip-address" id="ip-display">{{ ip }}</div>
 <button class="copy-btn" id="copy-btn" onclick="copyIP()">Copy</button>
+{% if rdns %}<div class="rdns">{{ rdns }}</div>{% endif %}
 {% endblock %}
 
 {% block scripts %}
