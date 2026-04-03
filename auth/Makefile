@@ -7,8 +7,7 @@ build:
 run: build
 	docker run --rm -p 0.0.0.0:8000:80 \
 		-e ROOT_DOMAIN \
-		-e SESSION_SECRET \
+		-e SESSION_SECRET=test \
 		-e STORAGE_DIR=/tmp/aeratools \
-		-e SENDGRID_API_KEY \
-		-e EMAIL_FROM \
+		-e EMAIL_DEBUG=true \
 		auth

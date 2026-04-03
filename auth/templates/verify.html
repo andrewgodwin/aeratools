@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Sign In — aeratools{% endblock %}
+{% block title %}Enter code — aeratools{% endblock %}
 
 {% block head %}
 <style>
@@ -36,6 +36,10 @@
         line-height: 1.5;
     }
 
+    .auth-email {
+        color: var(--fg);
+    }
+
     .auth-error {
         font-size: 0.85rem;
         color: #e07070;
@@ -51,18 +55,20 @@
         gap: 0.6rem;
     }
 
-    .auth-input {
+    .auth-input-code {
         background: var(--bg);
         border: 1px solid var(--border);
         border-radius: 6px;
         color: var(--fg);
-        font-size: 0.9rem;
-        font-family: inherit;
-        padding: 0.5em 0.75em;
+        font-size: 1.8rem;
+        font-family: monospace;
+        letter-spacing: 0.3em;
+        padding: 0.4em 0.75em;
         width: 100%;
+        text-align: center;
     }
 
-    .auth-input:focus {
+    .auth-input-code:focus {
         outline: none;
         border-color: var(--accent);
     }
@@ -77,7 +83,6 @@
         font-family: inherit;
         padding: 0.55em 1.2em;
         cursor: pointer;
-        text-decoration: none;
         text-align: center;
     }
 
@@ -96,6 +101,7 @@
         cursor: pointer;
         text-decoration: none;
         text-align: center;
+        display: inline-block;
     }
 
     .auth-btn-secondary:hover {
@@ -108,21 +114,21 @@
 {% block content %}
 <div class="auth-wrap">
     <div class="auth-card">
-        {% if user %}
-            <h1 class="auth-title">Signed in</h1>
-            <p class="auth-sub">You are signed in as <strong>{{ user }}</strong>.</p>
-            <a href="/logout" class="auth-btn-secondary">Sign out</a>
-        {% else %}
-            <h1 class="auth-title">Sign in</h1>
-            <p class="auth-sub">Enter your email and we'll send you a sign-in code.</p>
-            {% if error %}<p class="auth-error">{{ error }}</p>{% endif %}
-            <form method="post" action="/login" class="auth-form">
-                {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
-                <input type="email" name="email" class="auth-input"
-                       placeholder="you@example.com" required autofocus>
-                <button type="submit" class="auth-btn">Send sign-in code</button>
-            </form>
-        {% endif %}
+        <h1 class="auth-title">Check your email</h1>
+        <p class="auth-sub">
+            We sent a 6-digit code to <span class="auth-email">{{ masked_email }}</span>.
+            Enter it below to sign in.
+        </p>
+        {% if error %}<p class="auth-error">{{ error }}</p>{% endif %}
+        <form method="post" action="/verify" class="auth-form">
+            <input type="hidden" name="session" value="{{ session_id }}">
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+            <input type="text" name="code" class="auth-input-code"
+                   placeholder="000000" maxlength="6" inputmode="numeric"
+                   autocomplete="one-time-code" autofocus required>
+            <button type="submit" class="auth-btn">Sign in</button>
+        </form>
+        <a href="/" class="auth-btn-secondary">Use a different email</a>
     </div>
 </div>
 {% endblock %}

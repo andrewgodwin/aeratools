@@ -85,6 +85,17 @@ class S3Storage:
                 ) from e
             raise
 
+    def delete(self, user_id: str, file: str):
+        """
+        Delete a stored object.
+
+        No-ops if the object does not exist.
+        """
+        self.client.delete_object(
+            Bucket=self.bucket,
+            Key=self._path(user_id, file),
+        )
+
 
 class LocalStorage:
     """
@@ -131,6 +142,17 @@ class LocalStorage:
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w") as f:
                 json.dump(content, f)
+
+    def delete(self, user_id: str, file: str):
+        """
+        Delete a stored object.
+
+        No-ops if the object does not exist.
+        """
+        try:
+            os.remove(self._path(user_id, file))
+        except FileNotFoundError:
+            pass
 
 
 def get_storage():

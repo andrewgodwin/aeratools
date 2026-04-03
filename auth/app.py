@@ -1,36 +1,29 @@
-import json
 import os
 import secrets
 import smtplib
+import sys
 import time
 from email.mime.text import MIMEText
 
-import boto3
 from authentication import (
     clear_session_cookie,
     register_auth_context,
     set_session_cookie,
 )
 from flask import Flask, make_response, redirect, render_template, request
+from storage import get_storage
 
 app = Flask(__name__)
 app.config["ROOT_DOMAIN"] = os.environ.get("ROOT_DOMAIN", "")
 register_auth_context(app)
 
 TOKEN_TTL = 15 * 60  # 15 minutes
-TOKEN_PREFIX = "auth/pending/"
-
-
-def _s3():
-    return boto3.client(
-        "s3",
-        endpoint_url=os.environ.get("S3_ENDPOINT_URL"),
-        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
-    )
 
 
 def _send_email(to_addr, subject, body):
+    if os.environ.get("EMAIL_DEBUG"):
+        print(f"Email for {to_addr}:\n{body}", flush=True, file=sys.stderr)
+        return
     from_addr = os.environ.get("EMAIL_FROM", f"noreply@{app.config['ROOT_DOMAIN']}")
     sendgrid_key = os.environ.get("SENDGRID_API_KEY")
 
@@ -64,6 +57,12 @@ def _send_email(to_addr, subject, body):
             server.sendmail(from_addr, [to_addr], msg.as_string())
 
 
+def _mask_email(email):
+    local, domain = email.split("@", 1)
+    visible = local[:2] if len(local) > 2 else local[:1]
+    return f"{visible}{'*' * (len(local) - len(visible))}@{domain}"
+
+
 @app.route("/")
 def index():
     return render_template("index.html", next=request.args.get("next", ""))
@@ -79,61 +78,94 @@ def login():
             "index.html", error="Please enter a valid email address.", next=next_url
         )
 
-    token = secrets.token_urlsafe(32)
-    bucket = os.environ.get("S3_BUCKET")
-    _s3().put_object(
-        Bucket=bucket,
-        Key=f"{TOKEN_PREFIX}{token}.json",
-        Body=json.dumps(
-            {"email": email, "expires": int(time.time()) + TOKEN_TTL, "next": next_url}
-        ),
-        ContentType="application/json",
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    session_id = secrets.token_urlsafe(32)
+    get_storage().store(
+        session_id,
+        "pending.json",
+        {
+            "email": email,
+            "code": code,
+            "expires": int(time.time()) + TOKEN_TTL,
+            "next": next_url,
+        },
     )
-
-    root_domain = app.config["ROOT_DOMAIN"]
-    auth_base = (
-        f"https://auth.{root_domain}" if root_domain else request.host_url.rstrip("/")
-    )
-    link = f"{auth_base}/verify?token={token}"
 
     _send_email(
         email,
-        "Sign in to aeratools",
-        f"Click this link to sign in (expires in 15 minutes):\n\n{link}\n\n"
+        "Your aeratools sign-in code",
+        f"Your sign-in code is: {code}\n\nIt expires in 15 minutes.\n\n"
         "If you didn't request this, you can safely ignore this email.",
     )
 
-    return render_template("sent.html", email=email)
+    return redirect(f"/verify?session={session_id}")
 
 
-@app.route("/verify")
+@app.route("/verify", methods=["GET", "POST"])
 def verify():
-    token = request.args.get("token", "")
-    if not token:
+    if request.method == "GET":
+        session_id = request.args.get("session", "")
+        if not session_id:
+            return redirect("/")
+        result = get_storage().retrieve(session_id, "pending.json")
+        if result is None:
+            return render_template(
+                "index.html",
+                error="This sign-in session is invalid or has expired.",
+                next="",
+            )
+        data, _ = result
+        if int(time.time()) > data["expires"]:
+            get_storage().delete(session_id, "pending.json")
+            return render_template(
+                "index.html",
+                error="This sign-in session has expired. Please try again.",
+                next="",
+            )
+        return render_template(
+            "verify.html",
+            session_id=session_id,
+            masked_email=_mask_email(data["email"]),
+            next=data.get("next", ""),
+        )
+
+    # POST
+    session_id = request.form.get("session", "")
+    entered_code = request.form.get("code", "").strip()
+
+    if not session_id:
         return redirect("/")
 
-    bucket = os.environ.get("S3_BUCKET")
-    key = f"{TOKEN_PREFIX}{token}.json"
-    s3 = _s3()
+    storage = get_storage()
+    result = storage.retrieve(session_id, "pending.json")
 
-    try:
-        obj = s3.get_object(Bucket=bucket, Key=key)
-        data = json.loads(obj["Body"].read())
-    except Exception:
+    if result is None:
         return render_template(
             "index.html",
-            error="This sign-in link is invalid or has already been used.",
+            error="This sign-in session is invalid or has expired.",
             next="",
         )
 
-    s3.delete_object(Bucket=bucket, Key=key)
+    data, _ = result
 
     if int(time.time()) > data["expires"]:
+        storage.delete(session_id, "pending.json")
         return render_template(
             "index.html",
-            error="This sign-in link has expired. Please request a new one.",
+            error="This sign-in session has expired. Please try again.",
             next="",
         )
+
+    if not secrets.compare_digest(entered_code, data["code"]):
+        return render_template(
+            "verify.html",
+            session_id=session_id,
+            masked_email=_mask_email(data["email"]),
+            next=data.get("next", ""),
+            error="Incorrect code. Please try again.",
+        )
+
+    storage.delete(session_id, "pending.json")
 
     next_url = data.get("next") or "/"
     response = make_response(redirect(next_url))
