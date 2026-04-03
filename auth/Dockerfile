@@ -9,7 +9,7 @@ RUN cat common-requirements.txt >> requirements.txt && \
 
 COPY --from=common templates/ templates/
 COPY --from=common static/ static/
-COPY --from=common auth.py auth.py
+COPY --from=common authentication.py authentication.py
 
 COPY . .
 
