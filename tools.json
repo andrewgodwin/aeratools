@@ -41,5 +41,12 @@
         "description": "Displays your public IP address, resolving via X-Forwarded-For when behind a proxy",
         "icon": "bi-globe",
         "group": "Utilities"
+    },
+    "auth": {
+        "name": "Sign In",
+        "description": "Email-based magic link authentication; sets a session cookie used by tools with sign-in features",
+        "icon": "bi-person-circle",
+        "group": "__hidden__",
+        "aliases": []
     }
 }

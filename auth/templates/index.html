@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Sign In — aeratools{% endblock %}
+
+{% block head %}
+<style>
+    .auth-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 2rem;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 380px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .auth-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--fg);
+    }
+
+    .auth-sub {
+        font-size: 0.875rem;
+        color: var(--muted);
+        line-height: 1.5;
+    }
+
+    .auth-error {
+        font-size: 0.85rem;
+        color: #e07070;
+        background: #70303020;
+        border: 1px solid #70303060;
+        border-radius: 6px;
+        padding: 0.5em 0.75em;
+    }
+
+    .auth-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .auth-input {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--fg);
+        font-size: 0.9rem;
+        font-family: inherit;
+        padding: 0.5em 0.75em;
+        width: 100%;
+    }
+
+    .auth-input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+    .auth-btn {
+        background: var(--accent);
+        color: var(--bg);
+        border: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        font-family: inherit;
+        padding: 0.55em 1.2em;
+        cursor: pointer;
+        text-decoration: none;
+        text-align: center;
+    }
+
+    .auth-btn:hover {
+        opacity: 0.88;
+    }
+
+    .auth-btn-secondary {
+        background: none;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-family: inherit;
+        padding: 0.45em 1em;
+        cursor: pointer;
+        text-decoration: none;
+        text-align: center;
+    }
+
+    .auth-btn-secondary:hover {
+        color: var(--fg);
+        border-color: var(--muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+    <div class="auth-card">
+        {% if user %}
+            <h1 class="auth-title">Signed in</h1>
+            <p class="auth-sub">You are signed in as <strong>{{ user }}</strong>.</p>
+            <a href="/logout" class="auth-btn-secondary">Sign out</a>
+        {% else %}
+            <h1 class="auth-title">Sign in</h1>
+            <p class="auth-sub">Enter your email and we'll send you a sign-in link.</p>
+            {% if error %}<p class="auth-error">{{ error }}</p>{% endif %}
+            <form method="post" action="/login" class="auth-form">
+                {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+                <input type="email" name="email" class="auth-input"
+                       placeholder="you@example.com" required autofocus>
+                <button type="submit" class="auth-btn">Send sign-in link</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

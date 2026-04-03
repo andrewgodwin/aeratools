@@ -15,6 +15,9 @@ jobs:
         id: filter
         with:
           filters: |
+            auth:
+              - 'auth/**'
+              - 'common/**'
             clock:
               - 'clock/**'
               - 'common/**'

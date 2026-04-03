@@ -1,8 +1,10 @@
 import os
 from flask import Flask, render_template, request, jsonify
+from auth import register_auth_context
 
 app = Flask(__name__)
 app.config["ROOT_DOMAIN"] = os.environ.get("ROOT_DOMAIN", "")
+register_auth_context(app)
 
 
 def get_ip_info():
