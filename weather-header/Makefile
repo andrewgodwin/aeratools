@@ -5,4 +5,6 @@ build:
 		.
 
 run: build
-	docker run --rm -p 0.0.0.0:8000:80 weather-header
+	docker run --rm -p 0.0.0.0:8000:80 \
+		-e SESSION_SECRET=test \
+		weather-header

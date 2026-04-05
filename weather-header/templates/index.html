@@ -4,15 +4,6 @@
 
 {% block head %}
 <style>
-    body {
-        align-items: center;
-    }
-
-    .container {
-        justify-content: center;
-        min-height: 100vh;
-    }
-
     .weather-header {
         display: flex;
         justify-content: space-between;
@@ -162,15 +153,17 @@
 {% endblock %}
 
 {% block content %}
-<div class="weather-header">
-    <div class="date-section">
-        <div id="weekday"></div>
-        <div id="fulldate"></div>
-    </div>
-    <div class="weather-section">
-        <div id="today-row"></div>
-        <div id="tomorrow-row"></div>
-        <div id="weather-location" class="weather-location"></div>
+<div class="single-center">
+    <div class="weather-header">
+        <div class="date-section">
+            <div id="weekday"></div>
+            <div id="fulldate"></div>
+        </div>
+        <div class="weather-section">
+            <div id="today-row"></div>
+            <div id="tomorrow-row"></div>
+            <div id="weather-location" class="weather-location"></div>
+        </div>
     </div>
 </div>
 {% endblock %}

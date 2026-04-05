@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Dashboard{% endblock %}
+{% block toolname %}dashboard{% endblock %}
 
 {% block head %}
 <style>
@@ -206,28 +207,16 @@
     <button class="config-btn-add" data-section="right">+ Add entry</button>
 </div>
 <hr class="config-divider">
+<div id="config-error" style="display:none;color:#e07070;font-size:0.8rem;margin-bottom:0.4rem;"></div>
 <button class="config-apply" id="config-apply">Apply</button>
 {% endblock %}
 
 {% block scripts %}
 <script>
 (function () {
-    function getConfig() {
-        var p = new URLSearchParams(window.location.search);
-        var raw = p.get('config');
-        if (!raw) return { header: [], left: [], right: [] };
-        try {
-            return JSON.parse(atob(raw));
-        } catch (e) {
-            return { header: [], left: [], right: [] };
-        }
-    }
-
-    function saveConfig(cfg) {
-        var p = new URLSearchParams(window.location.search);
-        p.set('config', btoa(JSON.stringify(cfg)));
-        history.replaceState(null, '', '?' + p.toString());
-    }
+    // Config injected server-side; deep-clone for in-progress edits.
+    var currentConfig = {{ config | tojson }};
+    var configState = JSON.parse(JSON.stringify(currentConfig));
 
     function makeIframe(entry) {
         var iframe = document.createElement('iframe');
@@ -274,8 +263,6 @@
     }
 
     // ── Config UI ──────────────────────────────────────────────
-
-    var configState = getConfig();
 
     function escAttr(s) {
         return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
@@ -335,15 +322,50 @@
         });
     });
 
-    document.getElementById('config-apply').addEventListener('click', function (e) {
+    var applyBtn = document.getElementById('config-apply');
+    var errorEl  = document.getElementById('config-error');
+
+    applyBtn.addEventListener('click', function (e) {
         e.stopPropagation();
-        saveConfig(configState);
-        renderDashboard(configState);
+        errorEl.style.display = 'none';
+        applyBtn.disabled = true;
+
+        fetch('/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(configState)
+        })
+        .then(function (res) {
+            if (res.status === 401) {
+                return res.json().then(function (data) {
+                    errorEl.textContent = data.error || 'Sign in to save your dashboard';
+                    errorEl.style.display = 'block';
+                });
+            }
+            if (!res.ok) {
+                errorEl.textContent = 'Failed to save. Please try again.';
+                errorEl.style.display = 'block';
+                return;
+            }
+            return res.json().then(function (data) {
+                currentConfig = JSON.parse(JSON.stringify(configState));
+                history.pushState(null, '', '/' + data.id);
+                renderDashboard(configState);
+            });
+        })
+        .catch(function () {
+            errorEl.textContent = 'Network error. Please try again.';
+            errorEl.style.display = 'block';
+        })
+        .finally(function () {
+            applyBtn.disabled = false;
+        });
     });
 
-    // Re-sync config state each time the prefs popup is opened
+    // Re-sync edits to last-saved state each time the prefs popup is opened
     document.getElementById('prefs-gear').addEventListener('click', function () {
-        configState = getConfig();
+        configState = JSON.parse(JSON.stringify(currentConfig));
+        errorEl.style.display = 'none';
         renderConfigUI();
     });
 
