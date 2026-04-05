@@ -3,6 +3,18 @@
 {% block title %}Dashboard{% endblock %}
 {% block toolname %}dashboard{% endblock %}
 
+{% block header_extra %}
+<a href="/my-dashboards" class="prefs" aria-label="My dashboards" title="My dashboards">
+    <i class="bi-collection"></i>
+</a>
+<button class="prefs" id="dashboard-refresh" aria-label="Refresh">
+    <i class="bi-arrow-clockwise"></i>
+</button>
+<button class="prefs" id="dashboard-fullscreen" aria-label="Fullscreen">
+    <i class="bi-fullscreen"></i>
+</button>
+{% endblock %}
+
 {% block head %}
 <style>
     /* Full-width layout — dashboard is the outer container */
@@ -39,6 +51,12 @@
         width: 100%;
         border: none;
         display: block;
+    }
+
+    /* ── Debug mode ── */
+    body.debug-mode #dashboard-header iframe,
+    body.debug-mode .dashboard-col iframe {
+        outline: 2px solid #e07070;
     }
 
     /* ── Empty state ── */
@@ -207,6 +225,10 @@
     <button class="config-btn-add" data-section="right">+ Add entry</button>
 </div>
 <hr class="config-divider">
+<label style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;cursor:pointer;margin-bottom:0.5rem;">
+    <input type="checkbox" id="config-debug"> Debug (outline widgets)
+</label>
+<hr class="config-divider">
 <div id="config-error" style="display:none;color:#e07070;font-size:0.8rem;margin-bottom:0.4rem;"></div>
 <button class="config-apply" id="config-apply">Apply</button>
 {% endblock %}
@@ -369,9 +391,67 @@
         renderConfigUI();
     });
 
+    // ── Debug mode ────────────────────────────────────────────
+    document.getElementById('config-debug').addEventListener('change', function () {
+        document.body.classList.toggle('debug-mode', this.checked);
+    });
+
     // Initial render
     renderConfigUI();
     renderDashboard(configState);
+
+    // ── Refresh & Fullscreen buttons ───────────────────────────
+    document.getElementById('dashboard-refresh').addEventListener('click', function () {
+        window.location.reload();
+    });
+
+    (function () {
+        var btn = document.getElementById('dashboard-fullscreen');
+        var icon = btn.querySelector('i');
+
+        btn.addEventListener('click', function () {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        document.addEventListener('fullscreenchange', function () {
+            if (document.fullscreenElement) {
+                icon.className = 'bi-fullscreen-exit';
+                btn.setAttribute('aria-label', 'Exit fullscreen');
+                document.querySelector('header').style.display = 'none';
+            } else {
+                icon.className = 'bi-fullscreen';
+                btn.setAttribute('aria-label', 'Fullscreen');
+                document.querySelector('header').style.display = '';
+            }
+        });
+    })();
+
+    // ── Auto-reload ────────────────────────────────────────────
+    // Reload config every 30 minutes, but only if the user hasn't
+    // interacted within the last 60 seconds.
+    {% if dashboard_id %}
+    var lastActivity = Date.now();
+    var IDLE_THRESHOLD_MS = 60 * 1000;
+    var RELOAD_INTERVAL_MS = 30 * 60 * 1000;
+
+    function recordActivity() {
+        lastActivity = Date.now();
+    }
+
+    ['click', 'touchstart', 'keydown', 'mousedown', 'scroll'].forEach(function (evt) {
+        document.addEventListener(evt, recordActivity, { passive: true, capture: true });
+    });
+
+    setInterval(function () {
+        if (Date.now() - lastActivity >= IDLE_THRESHOLD_MS) {
+            window.location.reload();
+        }
+    }, RELOAD_INTERVAL_MS);
+    {% endif %}
 })();
 </script>
 {% endblock %}

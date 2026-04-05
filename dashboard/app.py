@@ -6,14 +6,14 @@ import os
 import secrets
 
 from authentication import get_current_user, register_auth_context
-from flask import Flask, abort, jsonify, render_template, request
+from flask import Flask, abort, jsonify, redirect, render_template, request
 from storage import get_storage
 
 app = Flask(__name__)
 app.config["ROOT_DOMAIN"] = os.environ.get("ROOT_DOMAIN", "")
 register_auth_context(app)
 
-DASHBOARD_NAMESPACE = "__dashboard__"
+DASHBOARD_PREFIX = "dashboard_"
 EMPTY_CONFIG: dict = {"header": [], "left": [], "right": []}
 
 
@@ -62,17 +62,44 @@ def save_config():
         return jsonify({"error": "Invalid config structure"}), 400
 
     dashboard_id = secrets.token_urlsafe(31)
-    get_storage().store(DASHBOARD_NAMESPACE, f"{dashboard_id}.json", cfg)
+    get_storage().store(user, f"{DASHBOARD_PREFIX}{dashboard_id}.json", cfg)
 
     return jsonify({"id": dashboard_id}), 201
+
+
+def _auth_redirect():
+    """
+    Return a redirect response to the auth tool for unauthenticated requests.
+    """
+    root_domain = app.config["ROOT_DOMAIN"]
+    auth_base = f"https://auth.{root_domain}" if root_domain else "/auth"
+    return redirect(f"{auth_base}/?next={request.url}")
+
+
+@app.route("/my-dashboards")
+def my_dashboards():
+    """
+    List all dashboards belonging to the current user; requires authentication.
+    """
+    user = get_current_user()
+    if not user:
+        return _auth_redirect()
+    files = get_storage().list(user, prefix=DASHBOARD_PREFIX)
+    dashboard_ids = [
+        f[len(DASHBOARD_PREFIX) : -len(".json")] for f in files if f.endswith(".json")
+    ]
+    return render_template("my_dashboards.html", dashboard_ids=dashboard_ids)
 
 
 @app.route("/<dashboard_id>")
 def view_dashboard(dashboard_id):
     """
-    View a saved dashboard by ID; publicly accessible.
+    View a saved dashboard by ID; requires authentication.
     """
-    result = get_storage().retrieve(DASHBOARD_NAMESPACE, f"{dashboard_id}.json")
+    user = get_current_user()
+    if not user:
+        return _auth_redirect()
+    result = get_storage().retrieve(user, f"{DASHBOARD_PREFIX}{dashboard_id}.json")
     if result is None:
         abort(404)
     config, _ = result

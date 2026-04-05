@@ -14,6 +14,7 @@
         <header>
             <a href="{{ index_url }}" class="logo">aeratools</a>
             <a href="." class="tool">{% block toolname %}tool{% endblock %}</a>
+            {% block header_extra %}{% endblock %}
             <a href="{{ auth_url }}" class="user" id="header-user" aria-label="User">
                 {% if user %}
                     <i class="bi-person-fill"></i> &nbsp;{{ user }}

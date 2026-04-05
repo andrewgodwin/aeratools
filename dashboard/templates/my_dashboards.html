@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}My Dashboards{% endblock %}
+{% block toolname %}dashboard{% endblock %}
+
+{% block head %}
+<style>
+    .dashboard-list {
+        padding: 2rem 1rem;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .dashboard-list h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1.25rem;
+    }
+
+    .dashboard-list ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .dashboard-list li {
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+    }
+
+    .dashboard-list a {
+        display: block;
+        padding: 0.6rem 0.85rem;
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-family: monospace;
+    }
+
+    .dashboard-list a:hover {
+        background: var(--surface);
+        border-radius: 5px;
+    }
+
+    .dashboard-empty {
+        color: var(--muted);
+        font-size: 0.9rem;
+    }
+
+    .dashboard-new {
+        display: inline-block;
+        margin-top: 1rem;
+        color: var(--accent);
+        font-size: 0.85rem;
+        text-decoration: none;
+    }
+    .dashboard-new:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-list">
+    <h1>My Dashboards</h1>
+    {% if dashboard_ids %}
+    <ul>
+        {% for id in dashboard_ids %}
+        <li><a href="/{{ id }}">{{ id }}</a></li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="dashboard-empty">No dashboards saved yet.</p>
+    {% endif %}
+    <a href="/" class="dashboard-new">+ New dashboard</a>
+</div>
+{% endblock %}

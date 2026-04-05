@@ -96,6 +96,19 @@ class S3Storage:
             Key=self._path(user_id, file),
         )
 
+    def list(self, user_id: str, prefix: str | None = None) -> list[str]:
+        """
+        List filenames stored for user_id, optionally filtered by prefix.
+        """
+        base = self._path(user_id, "")
+        key_prefix = self._path(user_id, prefix or "")
+        paginator = self.client.get_paginator("list_objects_v2")
+        files = []
+        for page in paginator.paginate(Bucket=self.bucket, Prefix=key_prefix):
+            for obj in page.get("Contents", []):
+                files.append(obj["Key"][len(base) :])
+        return files
+
 
 class LocalStorage:
     """
@@ -153,6 +166,19 @@ class LocalStorage:
             os.remove(self._path(user_id, file))
         except FileNotFoundError:
             pass
+
+    def list(self, user_id: str, prefix: str | None = None) -> list[str]:
+        """
+        List filenames stored for user_id, optionally filtered by prefix.
+        """
+        dir_path = os.path.join(self.storage_dir, "users", user_id[:3], user_id)
+        try:
+            files = os.listdir(dir_path)
+        except FileNotFoundError:
+            return []
+        if prefix is not None:
+            files = [f for f in files if f.startswith(prefix)]
+        return sorted(files)
 
 
 def get_storage():
