@@ -142,7 +142,7 @@ def verify():
     if result is None:
         return render_template(
             "index.html",
-            error="This sign-in session is invalid or has expired.",
+            error="This sign-in session is invalid or has expired. Please try again.",
             next="",
         )
 
@@ -152,7 +152,7 @@ def verify():
         storage.delete(session_id, "pending.json")
         return render_template(
             "index.html",
-            error="This sign-in session has expired. Please try again.",
+            error="This sign-in session is invalid or has expired. Please try again.",
             next="",
         )
 

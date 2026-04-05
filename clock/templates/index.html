@@ -1,20 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}Clock{% endblock %}
+{% block toolname %}clock{% endblock %}
 
 {% block head %}
 <style>
-    body {
-        align-items: center;
-    }
-
-    .container {
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        gap: 1rem;
-    }
-
     .clock-display {
         display: flex;
         align-items: baseline;
@@ -53,11 +43,13 @@
 {% endblock %}
 
 {% block content %}
-<div class="clock-display">
-    <span id="time"></span>
-    <span id="ampm"></span>
+<div class="single-center" style="gap: 1rem">
+    <div class="clock-display">
+        <span id="time"></span>
+        <span id="ampm"></span>
+    </div>
+    <div id="date"></div>
 </div>
-<div id="date"></div>
 {% endblock %}
 
 {% block prefs %}

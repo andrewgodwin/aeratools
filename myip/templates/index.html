@@ -1,20 +1,10 @@
 {% extends "base.html" %}
 
 {% block title %}My IP{% endblock %}
+{% block toolname %}myip{% endblock %}
 
 {% block head %}
 <style>
-    body {
-        align-items: center;
-    }
-
-    .container {
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        gap: 1.5rem;
-    }
-
     .ip-label {
         font-size: clamp(0.8rem, 2vw, 1rem);
         text-transform: uppercase;
@@ -65,10 +55,12 @@
 {% endblock %}
 
 {% block content %}
-<div class="ip-label">Your IP address</div>
-<div class="ip-address" id="ip-display">{{ ip }}</div>
-<button class="copy-btn" id="copy-btn" onclick="copyIP()">Copy</button>
-{% if rdns %}<div class="rdns">{{ rdns }}</div>{% endif %}
+<div class="single-center" style="gap: 1.5rem">
+    <div class="ip-label">Your IP address</div>
+    <div class="ip-address" id="ip-display">{{ ip }}</div>
+    <button class="copy-btn" id="copy-btn" onclick="copyIP()">Copy</button>
+    {% if rdns %}<div class="rdns">{{ rdns }}</div>{% endif %}
+</div>
 {% endblock %}
 
 {% block scripts %}
