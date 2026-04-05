@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Base64{% endblock %}
+{% block toolname %}base64{% endblock %}
+
+{% block head %}
+<style>
+    .b64-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1.5rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .b64-textarea {
+        width: 100%;
+        box-sizing: border-box;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.75rem;
+        color: var(--fg);
+        font-family: monospace;
+        font-size: 0.9rem;
+        min-height: 8rem;
+        resize: vertical;
+    }
+
+    .b64-textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+
+    .b64-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+    }
+
+    .b64-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .b64-btn {
+        background: var(--accent);
+        color: var(--bg);
+        border: none;
+        border-radius: 6px;
+        padding: 0.45rem 1.1rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.15s;
+    }
+
+    .b64-btn:hover {
+        opacity: 0.85;
+    }
+
+    .b64-btn.secondary {
+        background: var(--surface);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        font-weight: 400;
+    }
+
+    .b64-error {
+        color: #e07070;
+        font-size: 0.85rem;
+        min-height: 1.2em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="b64-layout">
+    <div>
+        <div class="b64-label">Input</div>
+        <textarea class="b64-textarea" id="input" placeholder="Enter text to encode, or base64 to decode…"></textarea>
+    </div>
+
+    <div class="b64-buttons">
+        <button class="b64-btn" id="encode-btn">Encode</button>
+        <button class="b64-btn" id="decode-btn">Decode</button>
+        <button class="b64-btn secondary" id="swap-btn">Swap</button>
+        <button class="b64-btn secondary" id="copy-btn">Copy Output</button>
+        <button class="b64-btn secondary" id="clear-btn">Clear</button>
+    </div>
+
+    <div>
+        <div class="b64-label">Output</div>
+        <textarea class="b64-textarea" id="output" placeholder="Result will appear here…" readonly></textarea>
+        <div class="b64-error" id="error"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var inputEl = document.getElementById('input');
+    var outputEl = document.getElementById('output');
+    var errorEl = document.getElementById('error');
+
+    function clearError() {
+        errorEl.textContent = '';
+    }
+
+    function showError(msg) {
+        errorEl.textContent = msg;
+    }
+
+    /** Encodes a Unicode string to base64 via UTF-8 bytes. */
+    function encodeBase64(str) {
+        var bytes = new TextEncoder().encode(str);
+        var binary = String.fromCharCode.apply(null, bytes);
+        return btoa(binary);
+    }
+
+    /** Decodes a base64 string to a Unicode string via UTF-8 bytes. */
+    function decodeBase64(str) {
+        var binary = atob(str);
+        var bytes = new Uint8Array(binary.length);
+        for (var i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        return new TextDecoder().decode(bytes);
+    }
+
+    document.getElementById('encode-btn').addEventListener('click', function () {
+        clearError();
+        try {
+            outputEl.value = encodeBase64(inputEl.value);
+        } catch (e) {
+            showError('Encoding failed: ' + e.message);
+        }
+    });
+
+    document.getElementById('decode-btn').addEventListener('click', function () {
+        clearError();
+        try {
+            outputEl.value = decodeBase64(inputEl.value.trim());
+        } catch (e) {
+            showError('Invalid base64 input.');
+        }
+    });
+
+    document.getElementById('swap-btn').addEventListener('click', function () {
+        clearError();
+        var tmp = inputEl.value;
+        inputEl.value = outputEl.value;
+        outputEl.value = tmp;
+    });
+
+    document.getElementById('copy-btn').addEventListener('click', function () {
+        var btn = document.getElementById('copy-btn');
+        navigator.clipboard.writeText(outputEl.value).then(function () {
+            btn.textContent = 'Copied!';
+            setTimeout(function () { btn.textContent = 'Copy Output'; }, 1500);
+        });
+    });
+
+    document.getElementById('clear-btn').addEventListener('click', function () {
+        clearError();
+        inputEl.value = '';
+        outputEl.value = '';
+        inputEl.focus();
+    });
+})();
+</script>
+{% endblock %}

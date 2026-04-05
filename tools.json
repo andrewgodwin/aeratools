@@ -6,6 +6,15 @@
     "icon": "bi-person-circle",
     "name": "Sign In"
   },
+  "base64": {
+    "aliases": [
+      "b64"
+    ],
+    "description": "Encode and decode base64 strings",
+    "group": "Utilities",
+    "icon": "bi-file-binary",
+    "name": "Base64"
+  },
   "clock": {
     "aliases": [],
     "description": "Simple digital clock with 12/24 hour and seconds preferences",
