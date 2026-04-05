@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --from=common templates/ templates/
 COPY --from=common static/ static/
+COPY --from=common authentication.py authentication.py
 COPY --from=root tools.json tools.json
 
 COPY . .

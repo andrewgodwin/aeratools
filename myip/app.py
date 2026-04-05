@@ -1,10 +1,12 @@
 import os
 import socket
 
+from authentication import register_auth_context
 from flask import Flask, jsonify, render_template, request
 
 app = Flask(__name__)
 app.config["ROOT_DOMAIN"] = os.environ.get("ROOT_DOMAIN", "")
+register_auth_context(app)
 
 
 def get_ip_info():

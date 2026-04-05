@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY --from=common templates/ templates/
 COPY --from=common static/ static/
 COPY --from=common single-page-app.py app.py
+COPY --from=common authentication.py authentication.py
 
 COPY . .
 

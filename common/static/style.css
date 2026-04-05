@@ -8,7 +8,7 @@
     --bg: #0f0f13;
     --fg: #e8e8f0;
     --accent: #7eb8f7;
-    --muted: #555568;
+    --muted: #7b7b91;
     --surface: #1a1a24;
     --border: #2a2a3a;
 }
@@ -28,6 +28,64 @@ html, body {
     height: 100%;
 }
 
+header {
+    display: flex;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin: -7px 1rem 0;
+    padding: 0;
+    min-height: 2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+}
+
+header .logo,
+header .tool,
+header .prefs,
+header .user {
+    display: block;
+    padding: 0.2rem 0.7rem 0rem 0.7rem;
+    line-height: 2.5rem;
+    color: white;
+    background: rgb(37, 85, 125);
+    text-decoration: none;
+    font-weight: 300;
+    border: 0;
+    cursor: pointer;
+}
+
+header i {
+    font-size: 110%;
+}
+
+header .logo {
+    font-weight: 500;
+}
+
+header .tool {
+    color: var(--fg);
+    background: var(--border);
+}
+
+header .user {
+    margin-left: auto;
+    color: var(--fg);
+    background: none;
+}
+
+header .prefs {
+    color: var(--fg);
+    background: none;
+}
+
+header .user:hover,
+header .user[aria-expanded="true"],
+header .prefs:hover,
+header .prefs[aria-expanded="true"] {
+    background: var(--border);
+}
+
 body {
     background-color: var(--bg);
     color: var(--fg);
@@ -43,28 +101,6 @@ body {
     flex-direction: column;
 }
 
-/* ── Preferences gear button ── */
-.prefs-gear {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    background: none;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 0.35rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s, border-color 0.15s;
-    z-index: 100;
-}
-.prefs-gear:hover,
-.prefs-gear[aria-expanded="true"] {
-    color: var(--fg);
-    border-color: var(--border);
-}
 
 /* ── Preferences popup ── */
 .prefs-popup {
