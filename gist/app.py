@@ -144,6 +144,7 @@ def new_gist():
         "created_by": user,
         "created_at": now,
         "updated_at": now,
+        "hide_email": bool(request.form.get("hide_email")),
     }
 
     storage = get_storage()
@@ -203,6 +204,7 @@ def edit_gist(gist_id):
         "title": title or "Untitled",
         "content": content,
         "updated_at": now,
+        "hide_email": bool(request.form.get("hide_email")),
     }
     try:
         storage.store(GIST_NAMESPACE, f"{gist_id}.json", updated, version=etag)

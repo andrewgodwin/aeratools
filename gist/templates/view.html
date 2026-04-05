@@ -199,7 +199,7 @@
         <div class="gist-meta">
             <div class="gist-title">{{ gist.title }}</div>
             <div class="gist-byline">
-                by {{ gist.created_by }} &middot; {{ gist.created_at | datetimeformat }}
+                by {% if gist.hide_email %}Anonymous{% else %}{{ gist.created_by }}{% endif %} &middot; {{ gist.created_at | datetimeformat }}
                 {% if gist.updated_at != gist.created_at %}
                     &middot; edited {{ gist.updated_at | datetimeformat }}
                 {% endif %}

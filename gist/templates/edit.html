@@ -136,6 +136,12 @@
             {% if gist_id %}Save changes{% else %}Create gist{% endif %}
         </button>
         <a href="{% if gist_id %}/{{ gist_id }}{% else %}/{% endif %}" class="btn">Cancel</a>
+        <label style="display: flex; align-items: center; gap: 0.5em; font-size: 0.875rem; color: var(--muted); cursor: pointer; margin-left: auto;">
+            <input type="checkbox" name="hide_email" value="1"
+                   {% if gist and gist.hide_email %}checked{% endif %}
+                   style="accent-color: var(--accent); cursor: pointer;">
+            Hide my email address
+        </label>
     </div>
 </form>
 {% endblock %}
