@@ -80,7 +80,7 @@ def register_auth_context(app):
         root_domain = os.environ.get("ROOT_DOMAIN", "")
         return {
             "user": get_current_user(),
-            "home_url": f"https://index.{root_domain}" if root_domain else "",
+            "index_url": f"https://index.{root_domain}" if root_domain else "",
             "auth_url": f"https://auth.{root_domain}" if root_domain else "",
         }
 
