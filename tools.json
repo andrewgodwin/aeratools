@@ -27,7 +27,7 @@
       "dash"
     ],
     "description": "Dashboard for embedding other tools and widgets",
-    "group": "Layout",
+    "group": "Widgets",
     "icon": "bi-grid-3x3-gap",
     "name": "Dashboard"
   },
