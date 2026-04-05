@@ -17,10 +17,17 @@
     "aliases": [
       "dash"
     ],
-    "description": "Configurable dashboard displaying URLs in iframes: a full-width header, left column, and right column",
+    "description": "Dashboard for embedding other tools and widgets",
     "group": "Layout",
     "icon": "bi-grid-3x3-gap",
     "name": "Dashboard"
+  },
+  "gist": {
+    "aliases": [],
+    "description": "Markdown paste-and-share tool",
+    "group": "Utilities",
+    "icon": "bi-journal-text",
+    "name": "Gist"
   },
   "index": {
     "aliases": [
@@ -32,19 +39,19 @@
     "name": "Index"
   },
   "myip": {
-    "description": "Displays your public IP address, resolving via X-Forwarded-For when behind a proxy",
+    "description": "Displays your public IP address and reverse DNS",
     "group": "Utilities",
     "icon": "bi-globe",
     "name": "My IP"
   },
   "text": {
-    "description": "Displays configurable text, useful as a label or note in a dashboard embed",
+    "description": "Displays configurable text, for screens/embeds",
     "group": "Widgets",
     "icon": "bi-fonts",
     "name": "Text"
   },
   "weather-header": {
-    "description": "Compact header widget showing the current date and today's/tomorrow's weather forecast, designed for dashboard embeds",
+    "description": "Header widget with date and weather",
     "group": "Widgets",
     "icon": "bi-cloud-sun",
     "name": "Weather Header"

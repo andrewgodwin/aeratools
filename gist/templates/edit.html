@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}{% if gist_id %}Edit Gist{% else %}New Gist{% endif %}{% endblock %}
+{% block toolname %}gist{% endblock %}
+
+{% block head %}
+<style>
+    .gist-form {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        flex: 1;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .form-group.grow {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+    }
+
+    input[type="text"],
+    textarea {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--fg);
+        font-family: inherit;
+        font-size: 1rem;
+        padding: 0.6em 0.8em;
+        outline: none;
+        transition: border-color 0.15s;
+        width: 100%;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+        border-color: var(--accent);
+    }
+
+    textarea {
+        font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', monospace;
+        font-size: 0.875rem;
+        line-height: 1.6;
+        resize: vertical;
+        min-height: 20rem;
+        flex: 1;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4em;
+        padding: 0.4em 1em;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-family: inherit;
+        cursor: pointer;
+        text-decoration: none;
+        border: 1px solid var(--border);
+        color: var(--fg);
+        background: var(--surface);
+        transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .btn-primary {
+        background: var(--accent);
+        color: var(--bg);
+        border-color: var(--accent);
+        font-weight: 600;
+    }
+
+    .btn-primary:hover {
+        opacity: 0.85;
+        color: var(--bg);
+    }
+
+    .form-error {
+        color: #f87171;
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+        background: rgba(248, 113, 113, 0.08);
+        border: 1px solid rgba(248, 113, 113, 0.3);
+        border-radius: 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<form class="gist-form" method="POST" action="{% if gist_id %}/{{ gist_id }}/edit{% else %}/new{% endif %}">
+    {% if error %}
+    <div class="form-error">{{ error }}</div>
+    {% endif %}
+
+    <div class="form-group">
+        <label class="form-label" for="title">Title <span style="color: var(--muted); font-weight: 400;">(optional)</span></label>
+        <input type="text" id="title" name="title"
+               value="{{ gist.title if gist else '' }}"
+               placeholder="Untitled"
+               maxlength="200">
+    </div>
+
+    <div class="form-group grow">
+        <label class="form-label" for="content">Markdown</label>
+        <textarea id="content" name="content" required
+                  placeholder="# Hello, world!">{{ gist.content if gist else '' }}</textarea>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">
+            {% if gist_id %}Save changes{% else %}Create gist{% endif %}
+        </button>
+        <a href="{% if gist_id %}/{{ gist_id }}{% else %}/{% endif %}" class="btn">Cancel</a>
+    </div>
+</form>
+{% endblock %}

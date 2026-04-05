@@ -63,4 +63,5 @@ repos:
       - id: mypy
         exclude: "^tests/"
         args: ["--explicit-package-bases", "--ignore-missing-imports"]
-        additional_dependencies: ["types-pyyaml~=6.0", "flask"]
+        additional_dependencies:
+          ["types-pyyaml~=6.0", "flask", "types-Markdown"]

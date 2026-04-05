@@ -24,6 +24,9 @@ jobs:
             dashboard:
               - 'dashboard/**'
               - 'common/**'
+            gist:
+              - 'gist/**'
+              - 'common/**'
             index:
               - 'index/**'
               - 'common/**'
