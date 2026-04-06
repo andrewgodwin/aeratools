@@ -15,6 +15,15 @@
     "icon": "bi-file-binary",
     "name": "Base64"
   },
+  "calendar": {
+    "aliases": [
+      "cal"
+    ],
+    "description": "Multi-calendar iCal viewer with day, week, and month views",
+    "group": "Widgets",
+    "icon": "bi-calendar3",
+    "name": "Calendar"
+  },
   "clock": {
     "aliases": [],
     "description": "Simple digital clock with 12/24 hour and seconds preferences",

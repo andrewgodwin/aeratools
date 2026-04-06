@@ -21,6 +21,9 @@ jobs:
             base64:
               - 'base64/**'
               - 'common/**'
+            calendar:
+              - 'calendar/**'
+              - 'common/**'
             clock:
               - 'clock/**'
               - 'common/**'
