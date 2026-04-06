@@ -573,6 +573,24 @@
         opacity: 0.7;
     }
 
+    .agenda-event.past {
+        opacity: 0.35;
+    }
+
+    .agenda-event.now {
+        background: color-mix(in srgb, var(--accent) 12%, transparent);
+        border-radius: 4px;
+        outline: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    }
+
+    .agenda-event.now .agenda-title {
+        font-weight: 600;
+    }
+
+    .agenda-day.all-past {
+        display: none;
+    }
+
     .agenda-empty-day {
         font-size: 0.8rem;
         color: var(--muted);
@@ -1271,6 +1289,7 @@
                 var day = addDays(windowStart, i);
                 var dayBlock = document.createElement('div');
                 dayBlock.className = 'agenda-day';
+                dayBlock.dataset.day = addDays(day, 1).getTime(); // midnight ending this day
 
                 var hdr = document.createElement('div');
                 hdr.className = 'agenda-day-header' + (sameDay(day, today) ? ' today' : '');
@@ -1322,6 +1341,10 @@
 
                     var row = document.createElement('div');
                     row.className = 'agenda-event';
+                    if (!ev.allDay) {
+                        row.dataset.start = ev.start.getTime();
+                        row.dataset.end = ev.end.getTime();
+                    }
 
                     var dot = document.createElement('div');
                     dot.className = 'agenda-dot';
@@ -1361,10 +1384,49 @@
             }
 
             main.appendChild(scroll);
+            startAgendaTick();
         }).catch(function () {
             setLoading(false);
             showError(main, 'Failed to load events.');
         });
+    }
+
+    // ── Agenda live-clock tick ───────────────────────────────────────────────
+    var _agendaTickTimer = null;
+
+    function agendaTick() {
+        /** Update past/now classes on agenda events and hide fully-past days. */
+        var now = Date.now();
+        var scroll = document.querySelector('.agenda-scroll');
+        if (!scroll) return;
+
+        scroll.querySelectorAll('.agenda-event[data-start]').forEach(function (row) {
+            var s = parseInt(row.dataset.start, 10);
+            var e = parseInt(row.dataset.end, 10);
+            var isPast = e <= now;
+            var isNow  = s <= now && now < e;
+            row.classList.toggle('past', isPast);
+            row.classList.toggle('now',  isNow);
+        });
+
+        scroll.querySelectorAll('.agenda-day[data-day]').forEach(function (block) {
+            var dayEnd = parseInt(block.dataset.day, 10);
+            block.classList.toggle('all-past', dayEnd <= now);
+        });
+    }
+
+    function startAgendaTick() {
+        /** Begin the per-minute agenda live-clock ticker. */
+        agendaTick();
+        _agendaTickTimer = setInterval(agendaTick, 60000);
+    }
+
+    function stopAgendaTick() {
+        /** Stop the agenda live-clock ticker. */
+        if (_agendaTickTimer !== null) {
+            clearInterval(_agendaTickTimer);
+            _agendaTickTimer = null;
+        }
     }
 
     function showError(container, msg) {
@@ -1413,6 +1475,7 @@
     // ── Main render ─────────────────────────────────────────────────────────
     function render() {
         /** Dispatch to the appropriate view renderer. */
+        stopAgendaTick();
         hidePopover();
         if (currentView === 'month') {
             renderMonthView();
