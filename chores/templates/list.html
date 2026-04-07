@@ -142,8 +142,13 @@
     .priority-medium .priority-dot { background: #ed8936; }
     .priority-low .priority-dot { background: #4299e1; }
 
-    .chore-title {
+    .chore-title-block {
         flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+    .chore-title {
         font-size: 0.95rem;
         color: var(--fg);
         white-space: nowrap;
@@ -151,9 +156,8 @@
         text-overflow: ellipsis;
     }
     .chore-due {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         white-space: nowrap;
-        padding: 0 0.5rem;
     }
     .chore-due.overdue { color: #e53e3e; }
     .chore-due.today { color: #ed8936; }
@@ -329,12 +333,14 @@
     {% for chore, info in chores %}
     <li class="chore-row priority-{{ chore.priority }}">
         <span class="priority-dot"></span>
-        <span class="chore-title" title="{{ chore|schedule_label }}">{{ chore.title }}</span>
-        <span class="chore-due {{ info.status }}">{{ info.label }}</span>
+        <span class="chore-title-block">
+            <span class="chore-title" title="{{ chore|schedule_label }}">{{ chore.title }}</span>
+            <span class="chore-due {{ info.status }}">{{ info.label }}</span>
+        </span>
         <div class="chore-actions">
             <div class="snooze-wrapper">
                 <button type="button" class="btn-snooze" data-target="snooze-{{ chore.id }}">
-                    snooze ▾
+                    snz ▾
                 </button>
                 <div class="snooze-popup" id="snooze-{{ chore.id }}">
                     <form method="post" action="/list/{{ list.slug }}/snooze/{{ chore.id }}">
