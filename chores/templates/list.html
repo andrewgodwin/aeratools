@@ -368,6 +368,9 @@
 
 {% block scripts %}
 <script>
+document.cookie = 'tz=' + Intl.DateTimeFormat().resolvedOptions().timeZone + '; path=/; SameSite=Lax';
+</script>
+<script>
 (function () {
     // Snooze popup toggle
     var snoozeButtons = document.querySelectorAll('.btn-snooze');

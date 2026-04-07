@@ -5,7 +5,8 @@ Flask app for the chores tool: track recurring chores with schedules and due dat
 import os
 import re
 import secrets
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from authentication import get_current_user, register_auth_context, require_auth
 from flask import Flask, abort, redirect, render_template, request
@@ -26,6 +27,19 @@ WEEKDAY_NAMES = [
     "Saturday",
     "Sunday",
 ]
+
+
+def get_today() -> date:
+    """
+    Return today's date in the browser's timezone (from the tz cookie), falling back to
+    UTC.
+    """
+    tz_name = request.cookies.get("tz", "UTC")
+    try:
+        tz = ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        tz = ZoneInfo("UTC")
+    return datetime.now(tz).date()
 
 
 def empty_data():
@@ -89,7 +103,7 @@ def compute_due_date(chore):
     """
     Compute the next due date for a chore, accounting for completions and vanish rules.
     """
-    today = date.today()
+    today = get_today()
     schedule_type = chore["schedule_type"]
     last_completed_str = chore.get("last_completed")
     last_completed = None
@@ -179,7 +193,7 @@ def build_due_info(chore):
     """
     Return a dict with due date, status string, and display label for a chore.
     """
-    today = date.today()
+    today = get_today()
     due = compute_due_date(chore)
     delta = (due - today).days
 
@@ -214,14 +228,14 @@ def is_snoozed(chore):
     snoozed_until = chore.get("snoozed_until")
     if not snoozed_until:
         return False
-    return date.today() <= date.fromisoformat(snoozed_until)
+    return get_today() <= date.fromisoformat(snoozed_until)
 
 
 def get_sorted_chores(data, list_id):
     """
     Return chores that are due today or overdue, sorted by priority then due date.
     """
-    today = date.today()
+    today = get_today()
     chores_with_info = []
     for chore in data["chores"]:
         if chore["list_id"] != list_id:
@@ -336,7 +350,7 @@ def complete_chore(slug, chore_id):
         chore = find_chore(data, chore_id)
         if chore is None:
             abort(404)
-        chore["last_completed"] = date.today().isoformat()
+        chore["last_completed"] = get_today().isoformat()
         chore["snoozed_until"] = None
         try:
             storage.store(user, CHORES_FILE, data, version=etag)
@@ -352,7 +366,7 @@ def snooze_chore(slug, chore_id):
     """
     Snooze a chore until a specified date, hiding it from the list until then.
     """
-    today = date.today()
+    today = get_today()
     if request.form.get("use_date"):
         until_str = request.form.get("until_date", "")
         if not until_str:
@@ -547,7 +561,7 @@ def new_chore():
             "vanish_if_missed": vanish,
             "last_completed": None,
             "snoozed_until": None,
-            "created_at": date.today().isoformat(),
+            "created_at": get_today().isoformat(),
         }
         data["chores"].append(chore)
         try:

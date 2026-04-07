@@ -368,6 +368,9 @@ New chore — Chores
 
 {% block scripts %}
 <script>
+document.cookie = 'tz=' + Intl.DateTimeFormat().resolvedOptions().timeZone + '; path=/; SameSite=Lax';
+</script>
+<script>
 (function () {
     var scheduleType = document.querySelectorAll('[name="schedule_type"]');
     var configs = document.querySelectorAll('.schedule-config');

@@ -232,3 +232,9 @@
 
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+document.cookie = 'tz=' + Intl.DateTimeFormat().resolvedOptions().timeZone + '; path=/; SameSite=Lax';
+</script>
+{% endblock %}
