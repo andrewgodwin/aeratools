@@ -1,0 +1,411 @@
+{% extends "base.html" %}
+
+{% block title %}
+{% if chore %}
+Edit chore — Chores
+{% else %}
+New chore — Chores
+{% endif %}
+{% endblock %}
+{% block toolname %}chores{% endblock %}
+
+{% block head %}
+<style>
+    .form-container {
+        padding: 1.5rem 1rem;
+        max-width: 560px;
+    }
+    .form-heading {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--fg);
+        margin-bottom: 1.5rem;
+    }
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    label.field-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin-bottom: 0.4rem;
+    }
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+        padding: 0.45rem 0.7rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--fg);
+        font-size: 0.95rem;
+        font-family: inherit;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    input[type="date"]:focus,
+    select:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+    select {
+        cursor: pointer;
+    }
+
+    /* Priority select row */
+    .priority-select { width: auto; }
+
+    /* Schedule type radio group */
+    .schedule-type-group {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .schedule-type-option {
+        display: none;
+    }
+    .schedule-type-label {
+        display: inline-block;
+        padding: 0.35rem 0.85rem;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        font-size: 0.875rem;
+        color: var(--muted);
+        cursor: pointer;
+        transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .schedule-type-option:checked + .schedule-type-label {
+        color: var(--accent);
+        border-color: var(--accent);
+        background: rgba(126,184,247,0.08);
+    }
+
+    /* Schedule config panels */
+    .schedule-config { display: none; }
+    .schedule-config.active { display: block; }
+
+    /* Weekday checkboxes */
+    .weekday-grid {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+    .weekday-check { display: none; }
+    .weekday-label {
+        display: inline-block;
+        padding: 0.25rem 0.6rem;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 0.8rem;
+        color: var(--muted);
+        cursor: pointer;
+        transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .weekday-check:checked + .weekday-label {
+        color: var(--accent);
+        border-color: var(--accent);
+        background: rgba(126,184,247,0.08);
+    }
+
+    /* Relative schedule inline row */
+    .relative-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .relative-row input[type="number"] {
+        width: 70px;
+    }
+    .relative-row select {
+        width: auto;
+    }
+
+    /* Vanish checkbox row */
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .checkbox-row input[type="checkbox"] {
+        width: 1rem;
+        height: 1rem;
+        accent-color: var(--accent);
+        cursor: pointer;
+    }
+    .checkbox-row label {
+        font-size: 0.9rem;
+        color: var(--fg);
+        cursor: pointer;
+    }
+    .checkbox-hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+    }
+    #vanish-group { display: none; }
+
+    /* Last completed */
+    .last-completed-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .last-completed-row input[type="date"] { width: auto; }
+    .clear-btn {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 0.8rem;
+        cursor: pointer;
+        font-family: inherit;
+        text-decoration: underline;
+    }
+    .clear-btn:hover { color: #e53e3e; }
+
+    /* Error message */
+    .form-error {
+        background: rgba(229,62,62,0.1);
+        border: 1px solid rgba(229,62,62,0.4);
+        color: #e53e3e;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Form actions */
+    .form-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        margin-top: 1.5rem;
+    }
+    .btn-submit {
+        padding: 0.5rem 1.2rem;
+        background: var(--accent);
+        border: none;
+        border-radius: 6px;
+        color: var(--bg);
+        font-size: 0.95rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+    }
+    .btn-submit:hover { opacity: 0.85; }
+    .btn-cancel {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+    .btn-cancel:hover { color: var(--fg); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1 class="form-heading">{% if chore %}Edit chore{% else %}New chore{% endif %}</h1>
+
+    {% if error %}
+    <div class="form-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+        <!-- List target (hidden for edits, visible for new chores) -->
+        {% if not chore %}
+        <div class="form-group">
+            <label class="field-label" for="list_slug">List</label>
+            <select name="list_slug" id="list_slug" class="priority-select">
+                {% for l in all_lists %}
+                <option value="{{ l.slug }}" {% if list and l.id == list.id %}selected{% endif %}>{{ l.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <!-- Title -->
+        <div class="form-group">
+            <label class="field-label" for="title">Title</label>
+            <input type="text" name="title" id="title" value="{{ chore.title if chore else '' }}"
+                   placeholder="e.g. Vacuum living room" required autofocus>
+        </div>
+
+        <!-- Priority -->
+        <div class="form-group">
+            <label class="field-label" for="priority">Priority</label>
+            <select name="priority" id="priority" class="priority-select" style="width:auto">
+                {% set p = chore.priority if chore else 'medium' %}
+                <option value="high" {% if p == 'high' %}selected{% endif %}>High</option>
+                <option value="medium" {% if p == 'medium' %}selected{% endif %}>Medium</option>
+                <option value="low" {% if p == 'low' %}selected{% endif %}>Low</option>
+            </select>
+        </div>
+
+        <!-- Schedule type -->
+        <div class="form-group">
+            <label class="field-label">Schedule</label>
+            <div class="schedule-type-group">
+                {% set stype = chore.schedule_type if chore else 'relative' %}
+
+                <input type="radio" name="schedule_type" id="stype-relative" value="relative" class="schedule-type-option"
+                       {% if stype == 'relative' %}checked{% endif %}>
+                <label for="stype-relative" class="schedule-type-label">Every N days</label>
+
+                <input type="radio" name="schedule_type" id="stype-weekday" value="fixed_weekday" class="schedule-type-option"
+                       {% if stype == 'fixed_weekday' %}checked{% endif %}>
+                <label for="stype-weekday" class="schedule-type-label">Specific weekday(s)</label>
+
+                <input type="radio" name="schedule_type" id="stype-biweekly" value="fixed_biweekly" class="schedule-type-option"
+                       {% if stype == 'fixed_biweekly' %}checked{% endif %}>
+                <label for="stype-biweekly" class="schedule-type-label">Every other weekday</label>
+            </div>
+        </div>
+
+        <!-- Relative schedule config -->
+        <div class="form-group schedule-config" id="config-relative">
+            <label class="field-label">Repeat every</label>
+            <div class="relative-row">
+                {% if chore and chore.schedule_type == 'relative' %}
+                    {% set rel_days = chore.schedule.days %}
+                    {% if rel_days % 7 == 0 %}
+                        {% set rel_amount = rel_days // 7 %}
+                        {% set rel_unit = 'weeks' %}
+                    {% else %}
+                        {% set rel_amount = rel_days %}
+                        {% set rel_unit = 'days' %}
+                    {% endif %}
+                {% else %}
+                    {% set rel_amount = 7 %}
+                    {% set rel_unit = 'days' %}
+                {% endif %}
+                <input type="number" name="relative_amount" id="relative_amount"
+                       value="{{ rel_amount }}" min="1" max="365">
+                <select name="relative_unit" id="relative_unit" style="width:auto">
+                    <option value="days" {% if rel_unit == 'days' %}selected{% endif %}>days</option>
+                    <option value="weeks" {% if rel_unit == 'weeks' %}selected{% endif %}>weeks</option>
+                </select>
+                <span style="color:var(--muted);font-size:0.85rem">after last completion</span>
+            </div>
+        </div>
+
+        <!-- Fixed weekday config -->
+        <div class="form-group schedule-config" id="config-fixed_weekday">
+            <label class="field-label">Day(s) of the week</label>
+            <div class="weekday-grid">
+                {% set weekday_names = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
+                {% for i in range(7) %}
+                    {% if chore and chore.schedule_type == 'fixed_weekday' %}
+                        {% set checked = i in chore.schedule.weekdays %}
+                    {% else %}
+                        {% set checked = false %}
+                    {% endif %}
+                    <input type="checkbox" name="weekday_{{ i }}" id="wd-{{ i }}" value="1"
+                           class="weekday-check" {% if checked %}checked{% endif %}>
+                    <label for="wd-{{ i }}" class="weekday-label">{{ weekday_names[i] }}</label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Biweekly config -->
+        <div class="form-group schedule-config" id="config-fixed_biweekly">
+            <label class="field-label" for="biweekly_weekday">Which weekday</label>
+            {% if chore and chore.schedule_type == 'fixed_biweekly' %}
+                {% set bw_day = chore.schedule.weekday %}
+            {% else %}
+                {% set bw_day = 0 %}
+            {% endif %}
+            <select name="biweekly_weekday" id="biweekly_weekday" style="width:auto">
+                {% set full_names = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+                {% for i in range(7) %}
+                <option value="{{ i }}" {% if i == bw_day %}selected{% endif %}>{{ full_names[i] }}</option>
+                {% endfor %}
+            </select>
+            <p style="color:var(--muted);font-size:0.8rem;margin-top:0.3rem">
+                Repeats every other {{ full_names[bw_day] }}, anchored to the chore's creation date.
+            </p>
+        </div>
+
+        <!-- Vanish if missed (hidden for relative) -->
+        <div class="form-group" id="vanish-group">
+            <div class="checkbox-row">
+                <input type="checkbox" name="vanish_if_missed" id="vanish_if_missed" value="1"
+                       {% if chore and chore.vanish_if_missed %}checked{% endif %}>
+                <label for="vanish_if_missed">Vanish if missed</label>
+            </div>
+            <p class="checkbox-hint">
+                If unchecked, the chore stays overdue until you mark it done.
+                If checked, it silently skips to the next scheduled occurrence.
+            </p>
+        </div>
+
+        <!-- Last completed (edit only) -->
+        {% if chore %}
+        <div class="form-group">
+            <label class="field-label">Last completed</label>
+            <div class="last-completed-row">
+                <input type="date" name="last_completed" id="last_completed"
+                       value="{{ chore.last_completed[:10] if chore.last_completed else '' }}">
+                <button type="button" class="clear-btn" id="clear-completion">Clear</button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Actions -->
+        <div class="form-actions">
+            <button type="submit" class="btn-submit">
+                {% if chore %}Save changes{% else %}Add chore{% endif %}
+            </button>
+            <a href="/list/{{ list.slug if list else '' }}" class="btn-cancel">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var scheduleType = document.querySelectorAll('[name="schedule_type"]');
+    var configs = document.querySelectorAll('.schedule-config');
+    var vanishGroup = document.getElementById('vanish-group');
+
+    function showActiveConfig() {
+        var selected = document.querySelector('[name="schedule_type"]:checked');
+        if (!selected) return;
+        var val = selected.value;
+        configs.forEach(function (el) {
+            el.classList.toggle('active', el.id === 'config-' + val);
+        });
+        // Show vanish-if-missed only for fixed schedules
+        vanishGroup.style.display = (val === 'relative') ? 'none' : 'block';
+    }
+
+    scheduleType.forEach(function (radio) {
+        radio.addEventListener('change', showActiveConfig);
+    });
+    showActiveConfig();
+
+    // Clear last-completed button
+    var clearBtn = document.getElementById('clear-completion');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+            document.getElementById('last_completed').value = '';
+        });
+    }
+
+    // Update biweekly hint when day changes
+    var bwSelect = document.getElementById('biweekly_weekday');
+    var bwHint = bwSelect && bwSelect.parentElement.querySelector('p');
+    var fullNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    if (bwSelect && bwHint) {
+        bwSelect.addEventListener('change', function () {
+            bwHint.textContent = 'Repeats every other ' + fullNames[parseInt(bwSelect.value)] + ', anchored to the chore\'s creation date.';
+        });
+    }
+})();
+</script>
+{% endblock %}

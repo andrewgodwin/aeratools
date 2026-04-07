@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ list.name }} — Chores{% endblock %}
+{% block toolname %}chores{% endblock %}
+
+{% block head %}
+<style>
+    .edit-container {
+        padding: 1.5rem 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    /* ── Section headings ── */
+    .section-heading {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 0.75rem;
+    }
+
+    /* ── List management ── */
+    .list-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .list-meta input[type="text"] {
+        padding: 0.4rem 0.7rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--fg);
+        font-size: 1rem;
+        font-family: inherit;
+        min-width: 160px;
+    }
+    .list-meta input[type="text"]:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+    .btn {
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-family: inherit;
+        cursor: pointer;
+        border: 1px solid var(--border);
+        background: none;
+        color: var(--muted);
+        text-decoration: none;
+        display: inline-block;
+        transition: color 0.15s, border-color 0.15s;
+    }
+    .btn:hover {
+        color: var(--fg);
+        border-color: var(--muted);
+    }
+    .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--bg);
+        font-weight: 600;
+    }
+    .btn.primary:hover { opacity: 0.85; color: var(--bg); }
+    .btn.danger {
+        border-color: #e53e3e;
+        color: #e53e3e;
+    }
+    .btn.danger:hover {
+        background: rgba(229,62,62,0.1);
+    }
+    .btn-link {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 0.875rem;
+        font-family: inherit;
+        cursor: pointer;
+        padding: 0;
+        text-decoration: underline;
+    }
+
+    /* ── Chore table ── */
+    .chore-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    .chore-table th {
+        text-align: left;
+        padding: 0.4rem 0.6rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        border-bottom: 1px solid var(--border);
+    }
+    .chore-table td {
+        padding: 0.5rem 0.6rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--fg);
+        vertical-align: middle;
+    }
+    .chore-table tr:last-child td { border-bottom: none; }
+    .chore-table .priority-badge {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 0.4rem;
+    }
+    .priority-high .priority-badge { background: #e53e3e; }
+    .priority-medium .priority-badge { background: #ed8936; }
+    .priority-low .priority-badge { background: #4299e1; }
+    .chore-table .muted { color: var(--muted); font-size: 0.8rem; }
+    .chore-table .actions { display: flex; gap: 0.5rem; }
+    .chore-table .actions a, .chore-table .actions button {
+        font-size: 0.8rem;
+        color: var(--muted);
+        text-decoration: none;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        padding: 0;
+    }
+    .chore-table .actions a:hover { color: var(--accent); }
+    .chore-table .actions button:hover { color: #e53e3e; }
+
+    .empty-table {
+        text-align: center;
+        padding: 1.5rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+    }
+
+    /* ── Add chore CTA ── */
+    .add-chore-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .back-link {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.875rem;
+    }
+    .back-link:hover { color: var(--fg); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-container">
+
+    <!-- List management -->
+    <section>
+        <p class="section-heading">List settings</p>
+        <div class="list-meta">
+            <form method="post" action="/list/{{ list.slug }}/rename" style="display:contents">
+                <input type="text" name="name" value="{{ list.name }}" required>
+                <button type="submit" class="btn primary">Rename</button>
+            </form>
+            <form method="post" action="/list/{{ list.slug }}/delete"
+                  onsubmit="return confirm('Delete list "{{ list.name }}" and all its chores?')">
+                <button type="submit" class="btn danger">Delete list</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Chore table -->
+    <section>
+        <p class="section-heading">Chores in this list</p>
+        {% if chores %}
+        <table class="chore-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Schedule</th>
+                    <th>Priority</th>
+                    <th>Last done</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for chore in chores %}
+                <tr class="priority-{{ chore.priority }}">
+                    <td>
+                        <span class="priority-badge"></span>{{ chore.title }}
+                    </td>
+                    <td class="muted">{{ chore|schedule_label }}</td>
+                    <td class="muted">{{ chore.priority }}</td>
+                    <td class="muted">
+                        {% if chore.last_completed %}
+                            {{ chore.last_completed[:10] }}
+                            &nbsp;
+                            <form method="post" action="/chore/{{ chore.id }}/uncomplete" style="display:inline">
+                                <button type="submit" class="btn-link" title="Clear completion">✕</button>
+                            </form>
+                        {% else %}
+                            never
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="actions">
+                            <a href="/chore/{{ chore.id }}/edit">Edit</a>
+                            <form method="post" action="/chore/{{ chore.id }}/delete"
+                                  onsubmit="return confirm('Delete chore &quot;{{ chore.title }}&quot;?')">
+                                <button type="submit">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-table">No chores in this list yet.</div>
+        {% endif %}
+    </section>
+
+    <!-- Add chore / back -->
+    <div class="add-chore-row">
+        <a href="/list/{{ list.slug }}" class="back-link">← Back to list</a>
+        <a href="/chore/new?list={{ list.slug }}" class="btn primary">+ Add chore</a>
+    </div>
+
+</div>
+{% endblock %}

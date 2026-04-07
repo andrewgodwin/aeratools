@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Chores{% endblock %}
+{% block toolname %}chores{% endblock %}
+
+{% block content %}
+<div class="single-center">
+    <div class="empty-state">
+        <h2>No chore lists yet</h2>
+        <p>Create a list to start tracking your chores.</p>
+        <form method="post" action="/list/new" class="new-list-form">
+            <input type="text" name="name" placeholder="List name (e.g. House, Garden…)" required autofocus>
+            <button type="submit">Create list</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    .empty-state {
+        text-align: center;
+        max-width: 400px;
+        padding: 2rem;
+    }
+    .empty-state h2 {
+        font-size: 1.4rem;
+        margin-bottom: 0.5rem;
+        color: var(--fg);
+    }
+    .empty-state p {
+        color: var(--muted);
+        margin-bottom: 1.5rem;
+    }
+    .new-list-form {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .new-list-form input[type="text"] {
+        flex: 1;
+        padding: 0.5rem 0.75rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--fg);
+        font-size: 0.95rem;
+        font-family: inherit;
+    }
+    .new-list-form input[type="text"]:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+    .new-list-form button {
+        padding: 0.5rem 1rem;
+        background: var(--accent);
+        color: var(--bg);
+        border: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        font-family: inherit;
+        font-weight: 600;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}

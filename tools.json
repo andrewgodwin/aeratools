@@ -24,6 +24,13 @@
     "icon": "bi-calendar3",
     "name": "Calendar"
   },
+  "chores": {
+    "aliases": [],
+    "description": "Track recurring chores with schedules, priorities, and due dates",
+    "group": "Utilities",
+    "icon": "bi-check2-square",
+    "name": "Chores"
+  },
   "clock": {
     "aliases": [],
     "description": "Simple digital clock with 12/24 hour and seconds preferences",

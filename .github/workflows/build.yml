@@ -24,6 +24,9 @@ jobs:
             calendar:
               - 'calendar/**'
               - 'common/**'
+            chores:
+              - 'chores/**'
+              - 'common/**'
             clock:
               - 'clock/**'
               - 'common/**'
