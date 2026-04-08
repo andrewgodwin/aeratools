@@ -529,7 +529,7 @@
 
     .agenda-event {
         display: flex;
-        align-items: baseline;
+        align-items: stretch;
         gap: 0.6rem;
         padding: 0.3rem 0.4rem;
         border-radius: 5px;
@@ -541,26 +541,32 @@
     .agenda-event:hover { background: var(--surface); }
 
     .agenda-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
+        width: 3px;
+        min-height: 2rem;
+        border-radius: 3px;
         flex-shrink: 0;
-        margin-top: 0.35em;
+        align-self: stretch;
+    }
+
+    .agenda-event-body {
+        display: flex;
+        flex-direction: column;
+        gap: 0.05rem;
+        flex: 1;
+        overflow: hidden;
+        min-width: 0;
     }
 
     .agenda-time {
-        font-size: 0.78rem;
+        font-size: 0.73rem;
         color: var(--muted);
         white-space: nowrap;
-        min-width: 7rem;
-        flex-shrink: 0;
         font-variant-numeric: tabular-nums;
     }
 
     .agenda-title {
         font-size: 0.88rem;
         color: var(--fg);
-        flex: 1;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -573,7 +579,8 @@
         opacity: 0.7;
     }
 
-    .agenda-event.past {
+    .agenda-event.past,
+    .agenda-gap.past {
         display: none;
     }
 
@@ -1335,6 +1342,7 @@
                             var gapEl = document.createElement('div');
                             gapEl.className = 'agenda-gap';
                             gapEl.textContent = '· ' + gapStr;
+                            gapEl.dataset.end = ev.start.getTime();
                             dayBlock.appendChild(gapEl);
                         }
                     }
@@ -1350,6 +1358,13 @@
                     dot.className = 'agenda-dot';
                     dot.style.background = ev.color;
 
+                    var body = document.createElement('div');
+                    body.className = 'agenda-event-body';
+
+                    var titleEl = document.createElement('div');
+                    titleEl.className = 'agenda-title';
+                    titleEl.textContent = ev.title;
+
                     var timeEl = document.createElement('div');
                     timeEl.className = 'agenda-time';
                     if (ev.allDay) {
@@ -1358,13 +1373,10 @@
                         timeEl.textContent = fmtTime(ev.start) + ' – ' + fmtTime(ev.end);
                     }
 
-                    var titleEl = document.createElement('div');
-                    titleEl.className = 'agenda-title';
-                    titleEl.textContent = ev.title;
-
+                    body.appendChild(titleEl);
+                    body.appendChild(timeEl);
                     row.appendChild(dot);
-                    row.appendChild(timeEl);
-                    row.appendChild(titleEl);
+                    row.appendChild(body);
 
                     (function (ev2, rowEl) {
                         rowEl.addEventListener('click', function (e) {
@@ -1399,6 +1411,10 @@
         var now = Date.now();
         var scroll = document.querySelector('.agenda-scroll');
         if (!scroll) return;
+
+        scroll.querySelectorAll('.agenda-gap[data-end]').forEach(function (el) {
+            el.classList.toggle('past', parseInt(el.dataset.end, 10) <= now);
+        });
 
         scroll.querySelectorAll('.agenda-event[data-start]').forEach(function (row) {
             var s = parseInt(row.dataset.start, 10);
