@@ -199,7 +199,7 @@ def build_due_info(chore):
 
     if delta < 0:
         days = abs(delta)
-        label = f"overdue {days} day{'s' if days != 1 else ''}"
+        label = f"due {days} day{'s' if days != 1 else ''} ago"
         status = "overdue"
     elif delta == 0:
         label = "due today"

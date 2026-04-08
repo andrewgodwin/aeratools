@@ -19,9 +19,12 @@ EMPTY_CONFIG: dict = {"header": [], "left": [], "right": []}
 
 def _valid_config(cfg):
     """
-    Return True if cfg is a dict with header/left/right lists of valid entries.
+    Return True if cfg is a dict with optional name and header/left/right lists of valid
+    entries.
     """
     if not isinstance(cfg, dict):
+        return False
+    if "name" in cfg and not isinstance(cfg["name"], str):
         return False
     for section in ("header", "left", "right"):
         if not isinstance(cfg.get(section), list):
@@ -85,10 +88,40 @@ def my_dashboards():
     if not user:
         return _auth_redirect()
     files = get_storage().list(user, prefix=DASHBOARD_PREFIX)
-    dashboard_ids = [
-        f[len(DASHBOARD_PREFIX) : -len(".json")] for f in files if f.endswith(".json")
-    ]
-    return render_template("my_dashboards.html", dashboard_ids=dashboard_ids)
+    dashboards = []
+    for f in files:
+        if not f.endswith(".json"):
+            continue
+        dashboard_id = f[len(DASHBOARD_PREFIX) : -len(".json")]
+        result = get_storage().retrieve(user, f)
+        name = result[0].get("name", "") if result else ""
+        dashboards.append({"id": dashboard_id, "name": name or dashboard_id})
+    return render_template("my_dashboards.html", dashboards=dashboards)
+
+
+@app.route("/<dashboard_id>", methods=["PUT"])
+def update_dashboard(dashboard_id):
+    """
+    Overwrite an existing dashboard config; requires authentication.
+    """
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Sign in to save your dashboard"}), 401
+
+    existing = get_storage().retrieve(user, f"{DASHBOARD_PREFIX}{dashboard_id}.json")
+    if existing is None:
+        abort(404)
+
+    try:
+        cfg = request.get_json(force=True)
+    except Exception:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    if not _valid_config(cfg):
+        return jsonify({"error": "Invalid config structure"}), 400
+
+    get_storage().store(user, f"{DASHBOARD_PREFIX}{dashboard_id}.json", cfg)
+    return jsonify({"id": dashboard_id}), 200
 
 
 @app.route("/<dashboard_id>")

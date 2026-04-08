@@ -208,6 +208,11 @@
 
 {% block prefs %}
 <div class="config-section">
+    <div class="config-section-title">Name</div>
+    <input type="text" id="config-name" placeholder="My dashboard" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--fg);font-size:0.85rem;padding:0.3em 0.5em;font-family:inherit;box-sizing:border-box;">
+</div>
+<hr class="config-divider">
+<div class="config-section">
     <div class="config-section-title">Header</div>
     <div id="config-header-list"></div>
     <button class="config-btn-add" data-section="header">+ Add entry</button>
@@ -239,6 +244,7 @@
     // Config injected server-side; deep-clone for in-progress edits.
     var currentConfig = {{ config | tojson }};
     var configState = JSON.parse(JSON.stringify(currentConfig));
+    var dashboardId = {{ dashboard_id | tojson }};
 
     function makeIframe(entry) {
         var iframe = document.createElement('iframe');
@@ -330,10 +336,15 @@
     }
 
     function renderConfigUI() {
+        document.getElementById('config-name').value = configState.name || '';
         renderConfigSection('header');
         renderConfigSection('left');
         renderConfigSection('right');
     }
+
+    document.getElementById('config-name').addEventListener('input', function () {
+        configState.name = this.value;
+    });
 
     document.querySelectorAll('.config-btn-add').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
@@ -352,8 +363,11 @@
         errorEl.style.display = 'none';
         applyBtn.disabled = true;
 
-        fetch('/', {
-            method: 'POST',
+        var url = dashboardId ? ('/' + dashboardId) : '/';
+        var method = dashboardId ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(configState)
         })
@@ -371,7 +385,10 @@
             }
             return res.json().then(function (data) {
                 currentConfig = JSON.parse(JSON.stringify(configState));
-                history.pushState(null, '', '/' + data.id);
+                if (!dashboardId) {
+                    dashboardId = data.id;
+                    history.pushState(null, '', '/' + data.id);
+                }
                 renderDashboard(configState);
             });
         })
