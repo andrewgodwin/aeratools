@@ -17,26 +17,34 @@ register_auth_context(app)
 # In-memory cache: url -> (fetched_at, raw_bytes)
 _cache: dict[str, tuple[float, bytes]] = {}
 _cache_lock = threading.Lock()
-CACHE_TTL = 300  # seconds
+CACHE_TTL = 1800  # seconds (30 minutes)
 
 
 def fetch_ical(url: str) -> bytes:
     """
-    Fetch and cache raw iCal bytes for a URL, respecting the 5-minute TTL.
+    Fetch and cache raw iCal bytes for a URL, respecting the 30-minute TTL.
+
+    Falls back to the cached version if a fresh fetch fails.
     """
     now = time.monotonic()
     with _cache_lock:
         entry = _cache.get(url)
         if entry and (now - entry[0]) < CACHE_TTL:
             return entry[1]
-    resp = requests.get(
-        url, timeout=10, headers={"User-Agent": "aeratools-calendar/1.0"}
-    )
-    resp.raise_for_status()
-    data = resp.content
-    with _cache_lock:
-        _cache[url] = (now, data)
-    return data
+        stale = entry[1] if entry else None
+    try:
+        resp = requests.get(
+            url, timeout=10, headers={"User-Agent": "aeratools-calendar/1.0"}
+        )
+        resp.raise_for_status()
+        data = resp.content
+        with _cache_lock:
+            _cache[url] = (now, data)
+        return data
+    except Exception:
+        if stale is not None:
+            return stale
+        raise
 
 
 def to_utc_dt(dt_value) -> datetime:
