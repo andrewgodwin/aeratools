@@ -353,6 +353,14 @@ New chore — Chores
                 <button type="button" class="clear-btn" id="clear-completion">Clear</button>
             </div>
         </div>
+        <div class="form-group">
+            <label class="field-label">Snoozed until</label>
+            <div class="last-completed-row">
+                <input type="date" name="snoozed_until" id="snoozed_until"
+                       value="{{ chore.snoozed_until[:10] if chore.snoozed_until else '' }}">
+                <button type="button" class="clear-btn" id="clear-snooze">Clear</button>
+            </div>
+        </div>
         {% endif %}
 
         <!-- Actions -->
@@ -397,6 +405,14 @@ document.cookie = 'tz=' + Intl.DateTimeFormat().resolvedOptions().timeZone + '; 
     if (clearBtn) {
         clearBtn.addEventListener('click', function () {
             document.getElementById('last_completed').value = '';
+        });
+    }
+
+    // Clear snoozed-until button
+    var clearSnooze = document.getElementById('clear-snooze');
+    if (clearSnooze) {
+        clearSnooze.addEventListener('click', function () {
+            document.getElementById('snoozed_until').value = '';
         });
     }
 

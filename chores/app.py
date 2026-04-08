@@ -603,6 +603,7 @@ def edit_chore(chore_id):
     schedule_type = request.form.get("schedule_type", chore["schedule_type"])
     schedule = parse_schedule_from_form(request.form, schedule_type)
     last_completed = request.form.get("last_completed", "").strip() or None
+    snoozed_until = request.form.get("snoozed_until", "").strip() or None
 
     storage = get_storage()
     for _ in range(5):
@@ -619,6 +620,7 @@ def edit_chore(chore_id):
         c["schedule"] = schedule
         c["vanish_if_missed"] = bool(request.form.get("vanish_if_missed"))
         c["last_completed"] = last_completed
+        c["snoozed_until"] = snoozed_until
         try:
             storage.store(user, CHORES_FILE, data, version=etag)
             if lst:
