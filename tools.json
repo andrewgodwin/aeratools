@@ -75,6 +75,12 @@
     "icon": "bi-fonts",
     "name": "Text"
   },
+  "weather-art": {
+    "description": "Full-page weather photograph matching current conditions",
+    "group": "Widgets",
+    "icon": "bi-image",
+    "name": "Weather Art"
+  },
   "weather-header": {
     "description": "Header widget with date and weather",
     "group": "Widgets",

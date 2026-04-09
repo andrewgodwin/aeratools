@@ -46,6 +46,9 @@ jobs:
             text:
               - 'text/**'
               - 'common/**'
+            weather-art:
+              - 'weather-art/**'
+              - 'common/**'
             weather-header:
               - 'weather-header/**'
               - 'common/**'
