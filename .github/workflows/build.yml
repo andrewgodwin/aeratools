@@ -49,6 +49,9 @@ jobs:
             weather-art:
               - 'weather-art/**'
               - 'common/**'
+            sunclock:
+              - 'sunclock/**'
+              - 'common/**'
             weather-header:
               - 'weather-header/**'
               - 'common/**'

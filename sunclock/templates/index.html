@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}Sun Clock{% endblock %}
+{% block toolname %}sunclock{% endblock %}
+
+{% block head %}
+<style>
+    .sun-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        gap: 0.5rem;
+        padding: clamp(0.5rem, 2vw, 1.5rem);
+    }
+
+    @media (max-width: 360px) {
+        .sun-row {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    .sun-col {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+    }
+
+    .sun-time {
+        font-size: clamp(1.2rem, 4vw, 2.5rem);
+        font-weight: 600;
+        color: var(--accent);
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+    }
+
+    .sun-label {
+        font-size: clamp(0.65rem, 1.5vw, 0.85rem);
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    .sun-center-time {
+        display: flex;
+        align-items: baseline;
+        gap: 0.2em;
+    }
+
+    #time {
+        font-size: clamp(2.5rem, 10vw, 6rem);
+        font-weight: 700;
+        color: var(--fg);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+        line-height: 1;
+    }
+
+    #ampm {
+        font-size: clamp(1rem, 3.5vw, 2rem);
+        font-weight: 400;
+        color: var(--muted);
+        line-height: 1;
+    }
+
+    #ampm:empty {
+        display: none;
+    }
+
+    .sun-footer {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.15rem;
+    }
+
+    #day-length {
+        font-size: clamp(0.8rem, 2vw, 1rem);
+        color: var(--muted);
+    }
+
+    #location-name {
+        font-size: clamp(0.65rem, 1.5vw, 0.8rem);
+        color: var(--muted);
+        opacity: 0.7;
+    }
+
+    .sun-placeholder {
+        font-size: clamp(0.8rem, 2vw, 1rem);
+        color: var(--muted);
+        font-style: italic;
+    }
+
+    /* ── Prefs ── */
+    .prefs-input {
+        background: var(--bg);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 0.3em 0.6em;
+        font-size: 0.85rem;
+        font-family: inherit;
+        width: 100%;
+        transition: border-color 0.15s;
+    }
+    .prefs-input:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+    .prefs-input::placeholder {
+        color: var(--muted);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="single-center" style="gap: 0.75rem">
+    <div class="sun-row">
+        <div class="sun-col">
+            <div class="sun-time" id="sunrise-time">--:--</div>
+            <div class="sun-label">Sunrise</div>
+        </div>
+        <div class="sun-col">
+            <div class="sun-center-time">
+                <span id="time">--:--</span>
+                <span id="ampm"></span>
+            </div>
+            <div class="sun-label">Now</div>
+        </div>
+        <div class="sun-col">
+            <div class="sun-time" id="sunset-time">--:--</div>
+            <div class="sun-label">Sunset</div>
+        </div>
+    </div>
+    <div class="sun-footer">
+        <div id="day-length"></div>
+        <div id="location-name"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block prefs %}
+<div class="prefs-row">
+    <span class="prefs-label">Location</span>
+</div>
+<div>
+    <input class="prefs-input" id="location-input" type="text" placeholder="City name, e.g. London">
+</div>
+<div class="prefs-row" style="margin-top: 0.75rem">
+    <span class="prefs-label">Format</span>
+    <button class="prefs-toggle" id="btn-format"></button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    function getPrefs() {
+        var p = new URLSearchParams(window.location.search);
+        return {
+            location: p.get('location') || '',
+            use12h:   p.get('format') === '12',
+        };
+    }
+
+    function setParam(key, val) {
+        var p = new URLSearchParams(window.location.search);
+        p.set(key, val);
+        history.replaceState(null, '', '?' + p.toString());
+    }
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function fmtTime(date, use12h) {
+        var h = date.getHours();
+        var m = pad(date.getMinutes());
+        var ampm = '';
+        if (use12h) {
+            ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12 || 12;
+        }
+        return { text: pad(h) + ':' + m, ampm: ampm };
+    }
+
+    function parseSunTime(isoStr) {
+        // Open-Meteo returns local datetime strings like "2026-04-09T06:12"
+        var parts = isoStr.split('T');
+        var d = parts[0].split('-');
+        var t = parts[1].split(':');
+        return new Date(parseInt(d[0]), parseInt(d[1]) - 1, parseInt(d[2]),
+                        parseInt(t[0]), parseInt(t[1]));
+    }
+
+    function fmtDuration(ms) {
+        var totalMinutes = Math.round(ms / 60000);
+        var h = Math.floor(totalMinutes / 60);
+        var m = totalMinutes % 60;
+        return h + 'h ' + m + 'm';
+    }
+
+    // ── API calls ──
+    function geocode(name) {
+        var url = 'https://geocoding-api.open-meteo.com/v1/search?name=' +
+            encodeURIComponent(name) + '&count=1&language=en&format=json';
+        return fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.results || !data.results.length) {
+                    throw new Error('Location not found');
+                }
+                var r = data.results[0];
+                return { lat: r.latitude, lon: r.longitude,
+                         name: r.name + (r.country ? ', ' + r.country : '') };
+            });
+    }
+
+    function fetchSunTimes(lat, lon) {
+        var url = 'https://api.open-meteo.com/v1/forecast' +
+            '?latitude=' + lat + '&longitude=' + lon +
+            '&daily=sunrise,sunset&timezone=auto&forecast_days=1';
+        return fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                return {
+                    sunrise: parseSunTime(data.daily.sunrise[0]),
+                    sunset:  parseSunTime(data.daily.sunset[0]),
+                };
+            });
+    }
+
+    // ── Rendering ──
+    var sunriseDate = null;
+    var sunsetDate  = null;
+
+    function renderSunData(sunrise, sunset, locationName) {
+        sunriseDate = sunrise;
+        sunsetDate  = sunset;
+        var prefs = getPrefs();
+        var sr = fmtTime(sunrise, prefs.use12h);
+        var ss = fmtTime(sunset,  prefs.use12h);
+        document.getElementById('sunrise-time').textContent = sr.text;
+        document.getElementById('sunset-time').textContent  = ss.text;
+        var duration = sunset - sunrise;
+        document.getElementById('day-length').textContent =
+            duration > 0 ? 'Day length: ' + fmtDuration(duration) : '';
+        document.getElementById('location-name').textContent = locationName || '';
+    }
+
+    function renderPlaceholder(msg) {
+        sunriseDate = null;
+        sunsetDate  = null;
+        document.getElementById('sunrise-time').textContent = '--:--';
+        document.getElementById('sunset-time').textContent  = '--:--';
+        document.getElementById('day-length').innerHTML =
+            '<span class="sun-placeholder">' + msg + '</span>';
+        document.getElementById('location-name').textContent = '';
+    }
+
+    function tick() {
+        var prefs = getPrefs();
+        var fmt   = fmtTime(new Date(), prefs.use12h);
+        document.getElementById('time').textContent = fmt.text;
+        document.getElementById('ampm').textContent = fmt.ampm;
+    }
+
+    // ── Load ──
+    var cachedGeo = null;
+
+    function loadSunData(forceGeocode) {
+        var prefs = getPrefs();
+        if (!prefs.location) {
+            renderPlaceholder('Set a location in preferences');
+            return;
+        }
+        var geoPromise = (cachedGeo && !forceGeocode)
+            ? Promise.resolve(cachedGeo)
+            : geocode(prefs.location).then(function (g) { cachedGeo = g; return g; });
+
+        geoPromise
+            .then(function (geo) {
+                return fetchSunTimes(geo.lat, geo.lon).then(function (sun) {
+                    renderSunData(sun.sunrise, sun.sunset, geo.name);
+                });
+            })
+            .catch(function (err) {
+                renderPlaceholder(err.message || 'Unavailable');
+            });
+    }
+
+    // ── Controls ──
+    var btnFormat     = document.getElementById('btn-format');
+    var locationInput = document.getElementById('location-input');
+
+    function updateControls() {
+        var prefs = getPrefs();
+        btnFormat.textContent = prefs.use12h ? '12h' : '24h';
+        btnFormat.classList.toggle('active', prefs.use12h);
+        locationInput.value = prefs.location;
+    }
+
+    function refreshSunDisplay() {
+        // Re-render sun times after format change without re-fetching
+        if (sunriseDate && sunsetDate) {
+            renderSunData(sunriseDate, sunsetDate,
+                document.getElementById('location-name').textContent);
+        }
+        tick();
+    }
+
+    btnFormat.addEventListener('click', function () {
+        setParam('format', getPrefs().use12h ? '24' : '12');
+        updateControls();
+        refreshSunDisplay();
+    });
+
+    locationInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { locationInput.blur(); }
+    });
+
+    locationInput.addEventListener('blur', function () {
+        var val = locationInput.value.trim();
+        if (val !== getPrefs().location) {
+            setParam('location', val);
+            cachedGeo = null;
+            loadSunData(true);
+        }
+    });
+
+    // ── Init ──
+    updateControls();
+    tick();
+    loadSunData(true);
+
+    setInterval(tick, 1000);
+    // Refresh sun times hourly to handle midnight rollover
+    setInterval(function () { loadSunData(false); }, 60 * 60 * 1000);
+})();
+</script>
+{% endblock %}

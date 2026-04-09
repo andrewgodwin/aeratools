@@ -69,6 +69,15 @@
     "icon": "bi-globe",
     "name": "My IP"
   },
+  "sunclock": {
+    "aliases": [
+      "sun"
+    ],
+    "description": "Sunrise, current time, and sunset widget",
+    "group": "Widgets",
+    "icon": "bi-brightness-high",
+    "name": "Sun Clock"
+  },
   "text": {
     "description": "Displays configurable text, for screens/embeds",
     "group": "Widgets",
