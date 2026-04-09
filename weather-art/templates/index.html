@@ -4,9 +4,9 @@
 
 {% block head %}
 <style>
-    /* Make container background-less so the image fills it */
-    body {
-        background: #000;
+    body, .container {
+        background: transparent;
+        max-width: none;
     }
 
     #art-wrapper {
@@ -16,7 +16,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #111;
+        background: transparent;
     }
 
     #art-img {
