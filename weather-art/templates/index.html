@@ -70,24 +70,6 @@
         display: none;
     }
 
-    /* Attribution */
-    #art-attribution {
-        position: absolute;
-        bottom: 1.2rem;
-        right: 1.2rem;
-        font-size: 0.7rem;
-        color: rgba(255,255,255,0.5);
-        text-decoration: none;
-        pointer-events: auto;
-    }
-
-    #art-attribution:hover {
-        color: rgba(255,255,255,0.85);
-    }
-
-    #art-attribution.hidden {
-        display: none;
-    }
 
     /* Placeholder */
     #art-placeholder {
@@ -143,9 +125,6 @@
         <div class="overlay-pill small" id="overlay-location"></div>
     </div>
 
-    <a id="art-attribution" class="hidden" href="#" target="_blank" rel="noopener">
-        Photo: Unsplash
-    </a>
 
     <div id="art-placeholder">
         <i class="bi-image"></i>
@@ -361,7 +340,6 @@
     var overlay      = document.getElementById('art-overlay');
     var overlayWx    = document.getElementById('overlay-weather');
     var overlayLoc   = document.getElementById('overlay-location');
-    var attribution  = document.getElementById('art-attribution');
     var placeholder  = document.getElementById('art-placeholder');
     var placeholderMsg = document.getElementById('placeholder-msg');
 
@@ -375,7 +353,6 @@
         placeholder.classList.remove('hidden');
         img.classList.remove('loaded');
         overlay.classList.add('hidden');
-        attribution.classList.add('hidden');
     }
 
     function renderImage(photo, weather, geoName, units) {
@@ -383,13 +360,9 @@
             ' \u2014 ' + fmtTemp(weather.min, units) + ' / ' + fmtTemp(weather.max, units);
         overlayLoc.textContent = geoName;
 
-        attribution.textContent = 'Photo by ' + photo.photographerName + ' on Unsplash';
-        attribution.href = photo.photoPage;
-
         img.onload = function () {
             placeholder.classList.add('hidden');
             img.classList.add('loaded');
-            attribution.classList.remove('hidden');
 
             var prefs = getPrefs();
             if (prefs.overlay) {
