@@ -128,7 +128,7 @@
 
     <div id="art-placeholder">
         <i class="bi-image"></i>
-        <span id="placeholder-msg">Set a location and Unsplash API key in preferences</span>
+        <span id="placeholder-msg">Set a location in preferences</span>
     </div>
 </div>
 {% endblock %}
@@ -149,9 +149,17 @@
     <button class="prefs-toggle" id="btn-overlay"></button>
 </div>
 <div class="prefs-row">
+    <span class="prefs-label">Image source</span>
+    <button class="prefs-toggle" id="btn-source"></button>
+</div>
+<div class="prefs-row" id="row-style">
+    <span class="prefs-label">Style</span>
+    <button class="prefs-toggle" id="btn-style"></button>
+</div>
+<div class="prefs-row" id="row-unsplash-label">
     <span class="prefs-label">Unsplash access key</span>
 </div>
-<div>
+<div id="row-unsplash-key">
     <input class="prefs-input" id="unsplash-key-input" type="text" placeholder="Access key (not secret key)">
 </div>
 {% endblock %}
@@ -215,6 +223,68 @@
         99: 'Thunderstorm w/ hail',
     };
 
+    // ── WMO → generation prompt ──
+    var WMO_PROMPT = {
+        0:  'a breathtaking clear sky landscape at golden hour, warm sunlight bathing rolling hills, vivid blue sky, wide angle cinematic',
+        1:  'a mostly clear bright day over a vast open landscape, soft clouds on the horizon, sunlit fields, serene and airy',
+        2:  'a partly cloudy sky with dramatic light rays breaking through clouds over a sweeping landscape, atmospheric depth',
+        3:  'an overcast moody landscape under a heavy grey cloud ceiling, diffused light, quiet and still atmosphere',
+        45: 'a misty foggy morning in a dense forest, ethereal light filtering through fog, mysterious and tranquil',
+        48: 'a freezing fog winter landscape, ice crystals coating bare tree branches, pale white sky, silent and cold',
+        51: 'light drizzle falling on wet cobblestone streets, reflections in puddles, soft moody light, gentle rain',
+        53: 'a drizzly grey day over a rain-soaked landscape, gentle rainfall, dark atmospheric clouds, moody and quiet',
+        55: 'heavy drizzle over a stormy landscape, sheets of rain, dark brooding clouds, wet roads reflecting grey sky',
+        61: 'a light rain shower over green countryside, silvery droplets catching light, fresh and clean atmosphere',
+        63: 'a steady rainy day, dark storm clouds over an open landscape, rain streaking through the air, dramatic',
+        65: 'heavy rain and flooding over a dramatic landscape, torrential downpour, dark storm clouds, powerful and raw',
+        71: 'a gentle snowfall over a quiet winter landscape, soft white flakes drifting down, serene and peaceful',
+        73: 'a snowy winter forest, thick snow on pine branches, pristine white landscape, cold crisp air',
+        75: 'a heavy blizzard over a vast winter landscape, whiteout conditions, howling wind, dramatic and desolate',
+        77: 'a frost and snow grains winter scene, delicate ice crystals on grass and leaves, sharp cold light',
+        80: 'a rain shower breaking over a green landscape with a vivid rainbow arching across the sky, dramatic contrast',
+        81: 'rain showers with dark dramatic clouds over an open landscape, shafts of light piercing through breaks',
+        82: 'a violent heavy rain shower over a stormy landscape, near-black sky, intense rainfall, cinematic drama',
+        85: 'a light snow shower over a winter landscape, soft flakes swirling in the air, cold and peaceful',
+        86: 'a heavy snowfall and blizzard, dense snow filling the air, barely visible landscape through the storm',
+        95: 'a dramatic thunderstorm over a vast open landscape, lightning splitting a dark purple sky, towering storm clouds, cinematic wide angle',
+        96: 'a severe thunderstorm with large hail, lightning strikes illuminating dark storm clouds, violent and dramatic',
+        99: 'an extreme thunderstorm with heavy hail and multiple lightning bolts, apocalyptic dark sky, raw elemental power',
+    };
+
+    function wmoPrompt(code) {
+        var p = WMO_PROMPT[code];
+        if (p) return p;
+        var codes = Object.keys(WMO_PROMPT).map(Number).sort(function(a,b){return a-b;});
+        for (var i = codes.length - 1; i >= 0; i--) {
+            if (codes[i] <= code) return WMO_PROMPT[codes[i]];
+        }
+        return 'a beautiful natural landscape, wide angle, scenic';
+    }
+
+    // ── Generated image URL ──
+    function buildGeneratedUrl(wmoCode, location, style) {
+        // Deterministic seed: date + location → same image for same day/place
+        var today = new Date();
+        var dateStr = today.getFullYear() + '-' +
+            String(today.getMonth() + 1).padStart(2, '0') + '-' +
+            String(today.getDate()).padStart(2, '0');
+        var seedStr = dateStr + ':' + location.toLowerCase();
+        var seed = 5381;
+        for (var i = 0; i < seedStr.length; i++) {
+            seed = ((seed << 5) + seed) ^ seedStr.charCodeAt(i);
+        }
+        seed = Math.abs(seed);
+
+        var styleSuffix = (style === 'illustrated')
+            ? ', digital painting, illustration style, painterly, vibrant colors'
+            : ', photorealistic, ultra detailed, professional photography, 8k';
+
+        var prompt = wmoPrompt(wmoCode) + styleSuffix;
+        return 'https://image.pollinations.ai/prompt/' +
+            encodeURIComponent(prompt) +
+            '?width=1920&height=1080&nologo=true&seed=' + seed;
+    }
+
     function wmoQuery(code) {
         // Find nearest matching code
         var q = WMO_QUERY[code];
@@ -239,6 +309,8 @@
             units:       p.get('units') || 'c',
             overlay:     p.get('overlay') !== 'off',
             unsplashKey: p.get('key') || '',
+            source:      p.get('source') || 'unsplash',
+            style:       p.get('style') || 'photo',
         };
     }
 
@@ -343,10 +415,15 @@
     var placeholder  = document.getElementById('art-placeholder');
     var placeholderMsg = document.getElementById('placeholder-msg');
 
-    var btnUnits     = document.getElementById('btn-units');
-    var btnOverlay   = document.getElementById('btn-overlay');
-    var locationInput = document.getElementById('location-input');
-    var keyInput     = document.getElementById('unsplash-key-input');
+    var btnUnits         = document.getElementById('btn-units');
+    var btnOverlay       = document.getElementById('btn-overlay');
+    var btnSource        = document.getElementById('btn-source');
+    var btnStyle         = document.getElementById('btn-style');
+    var locationInput    = document.getElementById('location-input');
+    var keyInput         = document.getElementById('unsplash-key-input');
+    var rowStyle         = document.getElementById('row-style');
+    var rowUnsplashLabel = document.getElementById('row-unsplash-label');
+    var rowUnsplashKey   = document.getElementById('row-unsplash-key');
 
     function showPlaceholder(msg) {
         placeholderMsg.textContent = msg;
@@ -360,6 +437,9 @@
             ' \u2014 ' + fmtTemp(weather.min, units) + ' / ' + fmtTemp(weather.max, units);
         overlayLoc.textContent = geoName;
 
+        img.onerror = function () {
+            showPlaceholder('Image failed to load');
+        };
         img.onload = function () {
             placeholder.classList.add('hidden');
             img.classList.add('loaded');
@@ -384,7 +464,7 @@
             showPlaceholder('Set a location in preferences');
             return;
         }
-        if (!prefs.unsplashKey) {
+        if (prefs.source === 'unsplash' && !prefs.unsplashKey) {
             showPlaceholder('Set an Unsplash API key in preferences');
             return;
         }
@@ -399,7 +479,14 @@
             .then(function (geo) {
                 return fetchWeather(geo.lat, geo.lon, prefs.units)
                     .then(function (weather) {
-                        // Check cache (skip if code/location changed)
+                        if (prefs.source === 'generated') {
+                            // URL is deterministic — no fetch or cache needed
+                            var url = buildGeneratedUrl(weather.code, prefs.location, prefs.style);
+                            renderImage({ url: url }, weather, geo.name, prefs.units);
+                            return;
+                        }
+
+                        // Unsplash path
                         var cached = readCache();
                         if (cached && cached.code === weather.code && cached.location === prefs.location) {
                             renderImage(cached.photo, weather, geo.name, prefs.units);
@@ -428,6 +515,18 @@
         btnOverlay.classList.toggle('active', prefs.overlay);
         locationInput.value = prefs.location;
         keyInput.value = prefs.unsplashKey;
+
+        var isGenerated = prefs.source === 'generated';
+        btnSource.textContent = isGenerated ? 'Generated' : 'Unsplash';
+        btnSource.classList.toggle('active', isGenerated);
+
+        var isIllustrated = prefs.style === 'illustrated';
+        btnStyle.textContent = isIllustrated ? 'Illustrated' : 'Photo';
+        btnStyle.classList.toggle('active', isIllustrated);
+
+        rowStyle.style.display         = isGenerated ? '' : 'none';
+        rowUnsplashLabel.style.display = isGenerated ? 'none' : '';
+        rowUnsplashKey.style.display   = isGenerated ? 'none' : '';
     }
 
     btnUnits.addEventListener('click', function () {
@@ -473,6 +572,21 @@
             clearCache();
             load(false);
         }
+    });
+
+    btnSource.addEventListener('click', function () {
+        var prefs = getPrefs();
+        setParam('source', prefs.source === 'generated' ? 'unsplash' : 'generated');
+        clearCache();
+        updateControls();
+        load(false);
+    });
+
+    btnStyle.addEventListener('click', function () {
+        var prefs = getPrefs();
+        setParam('style', prefs.style === 'illustrated' ? 'photo' : 'illustrated');
+        updateControls();
+        load(false);
     });
 
     // ── Init ──
