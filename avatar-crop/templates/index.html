@@ -255,6 +255,15 @@
         <span class="ac-range-val" id="pref-border-opacity-val"></span>
     </div>
 </div>
+<div class="prefs-row">
+    <span class="prefs-label">Export size</span>
+    <div class="prefs-radio-group">
+        <label><input type="radio" name="export-size" value="512"> 512</label>
+        <label><input type="radio" name="export-size" value="1024"> 1024</label>
+        <label><input type="radio" name="export-size" value="2048"> 2048</label>
+        <label><input type="radio" name="export-size" value="0"> Native</label>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -262,7 +271,6 @@
 (function () {
     var MIN_CROP = 40;
     var HANDLE_R = 7;
-    var MAX_EXPORT = 1024;
 
     // ── State ─────────────────────────────────────────────────────────────────
 
@@ -281,6 +289,7 @@
         borderWidth: 8,
         borderOffset: 0,
         borderOpacity: 40,
+        exportSize: 1024,
         dpr: 1,
     };
 
@@ -296,6 +305,7 @@
             borderWidth:   Math.max(1, Math.min(30, parseInt(p.get('bw') || '8', 10))),
             borderOffset:  Math.max(0, Math.min(30, parseInt(p.get('boff') || '0', 10))),
             borderOpacity: Math.max(5, Math.min(95, parseInt(p.get('bo') || '40', 10))),
+            exportSize:    parseInt(p.get('size') || '1024', 10),
         };
     }
 
@@ -315,6 +325,7 @@
         state.borderWidth   = prefs.borderWidth;
         state.borderOffset  = prefs.borderOffset;
         state.borderOpacity = prefs.borderOpacity;
+        state.exportSize    = prefs.exportSize;
 
         // Shape buttons
         document.querySelectorAll('.ac-shape-btn').forEach(function (btn) {
@@ -344,6 +355,11 @@
         document.getElementById('pref-border-width-row').style.display   = showBorder ? '' : 'none';
         document.getElementById('pref-border-offset-row').style.display   = showBorder ? '' : 'none';
         document.getElementById('pref-border-opacity-row').style.display  = showBorder ? '' : 'none';
+
+        // Export size radio buttons
+        document.querySelectorAll('input[name="export-size"]').forEach(function (radio) {
+            radio.checked = parseInt(radio.value, 10) === state.exportSize;
+        });
     }
 
     // ── Canvas path helpers ───────────────────────────────────────────────────
@@ -647,10 +663,11 @@
         var srcW   = state.cropW * scaleX;
         var srcH   = state.cropH * scaleY;
 
-        // Cap at MAX_EXPORT on the larger side
+        // Scale to export size (0 = native resolution)
         var outW = srcW, outH = srcH;
-        if (Math.max(outW, outH) > MAX_EXPORT) {
-            var s = MAX_EXPORT / Math.max(outW, outH);
+        var cap = state.exportSize;
+        if (cap > 0 && Math.max(outW, outH) > cap) {
+            var s = cap / Math.max(outW, outH);
             outW  = Math.round(outW * s);
             outH  = Math.round(outH * s);
         } else {
@@ -821,6 +838,14 @@
         setParam('bo', this.value);
         syncPrefsToState();
         drawPreview();
+    });
+
+    // Export size radio buttons
+    document.querySelectorAll('input[name="export-size"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            setParam('size', this.value);
+            syncPrefsToState();
+        });
     });
 
     // ── Init ──────────────────────────────────────────────────────────────────
