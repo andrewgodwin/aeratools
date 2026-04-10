@@ -6,6 +6,15 @@
     "icon": "bi-person-circle",
     "name": "Sign In"
   },
+  "avatar-crop": {
+    "aliases": [
+      "avatar"
+    ],
+    "description": "Crop and shape images into avatars",
+    "group": "Utilities",
+    "icon": "bi-person-bounding-box",
+    "name": "Avatar Crop"
+  },
   "base64": {
     "aliases": [
       "b64"

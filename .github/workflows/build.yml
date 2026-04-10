@@ -18,6 +18,9 @@ jobs:
             auth:
               - 'auth/**'
               - 'common/**'
+            avatar-crop:
+              - 'avatar-crop/**'
+              - 'common/**'
             base64:
               - 'base64/**'
               - 'common/**'

@@ -1,0 +1,832 @@
+{% extends "base.html" %}
+
+{% block title %}Avatar Crop{% endblock %}
+{% block toolname %}Avatar Crop{% endblock %}
+
+{% block head %}
+<style>
+    .ac-root {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+
+    /* Phase 1: Upload */
+    .ac-upload {
+        display: flex;
+        flex: 1;
+        align-items: stretch;
+    }
+    .ac-root.has-image .ac-upload {
+        display: none;
+    }
+
+    .ac-drop-zone {
+        flex: 1;
+        margin: 1.5rem;
+        border: 2px dashed var(--border);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s;
+        outline: none;
+    }
+    .ac-drop-zone:hover,
+    .ac-drop-zone:focus,
+    .ac-drop-zone.drag-over {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 6%, transparent);
+    }
+    .ac-drop-icon {
+        font-size: 3rem;
+        color: var(--muted);
+    }
+    .ac-drop-title {
+        font-size: 1.1rem;
+        color: var(--fg);
+    }
+    .ac-drop-sub {
+        font-size: 0.85rem;
+        color: var(--muted);
+    }
+
+    /* Phase 2: Editor */
+    .ac-editor {
+        display: none;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+    .ac-root.has-image .ac-editor {
+        display: flex;
+    }
+
+    .ac-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1rem;
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        flex-wrap: wrap;
+    }
+    .ac-toolbar-group {
+        display: flex;
+        gap: 0.25rem;
+    }
+    .ac-toolbar-right {
+        margin-left: auto;
+    }
+
+    .ac-shape-btn {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--muted);
+        padding: 0.35rem 0.65rem;
+        font-size: 1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: color 0.15s, border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+    }
+    .ac-shape-btn.active {
+        color: var(--accent);
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+    }
+    .ac-shape-btn:hover:not(.active) {
+        color: var(--fg);
+        border-color: var(--muted);
+    }
+    .ac-shape-btn span {
+        font-size: 0.8rem;
+    }
+
+    .ac-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        cursor: pointer;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        transition: background 0.15s, border-color 0.15s;
+    }
+    .ac-btn-secondary {
+        background: var(--surface);
+        color: var(--muted);
+    }
+    .ac-btn-secondary:hover {
+        color: var(--fg);
+        border-color: var(--muted);
+    }
+    .ac-btn-primary {
+        background: var(--accent);
+        color: var(--bg);
+        border-color: var(--accent);
+    }
+    .ac-btn-primary:hover {
+        filter: brightness(1.15);
+    }
+
+    .ac-canvas-wrap {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        overflow: hidden;
+    }
+
+    #ac-canvas {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+    }
+
+    /* Prefs panel */
+    .ac-range-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .ac-range {
+        accent-color: var(--accent);
+        flex: 1;
+        min-width: 80px;
+    }
+    .ac-range-val {
+        font-size: 0.8rem;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        min-width: 3ch;
+        text-align: right;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ac-root" id="ac-root">
+
+    <!-- Phase 1: Upload -->
+    <div class="ac-upload" id="ac-upload">
+        <input type="file" id="ac-file-input" accept="image/*" hidden>
+        <div class="ac-drop-zone" id="ac-drop-zone" tabindex="0" role="button"
+             aria-label="Upload image to crop">
+            <i class="bi-image-fill ac-drop-icon"></i>
+            <div class="ac-drop-title">Drop an image here</div>
+            <div class="ac-drop-sub">or click to browse</div>
+        </div>
+    </div>
+
+    <!-- Phase 2: Editor -->
+    <div class="ac-editor" id="ac-editor">
+        <div class="ac-toolbar">
+            <div class="ac-toolbar-group">
+                <button class="ac-shape-btn active" data-shape="rect" aria-label="Rectangle crop">
+                    <i class="bi-square"></i><span>Rect</span>
+                </button>
+                <button class="ac-shape-btn" data-shape="round" aria-label="Rounded rectangle crop">
+                    <i class="bi-square-rounded"></i><span>Rounded</span>
+                </button>
+                <button class="ac-shape-btn" data-shape="circle" aria-label="Circle crop">
+                    <i class="bi-circle"></i><span>Circle</span>
+                </button>
+            </div>
+            <div class="ac-toolbar-group ac-toolbar-right">
+                <button class="ac-btn ac-btn-secondary" id="ac-new-btn">
+                    <i class="bi-upload"></i> New Image
+                </button>
+                <button class="ac-btn ac-btn-primary" id="ac-download-btn">
+                    <i class="bi-download"></i> Download PNG
+                </button>
+            </div>
+        </div>
+
+        <div class="ac-canvas-wrap" id="ac-canvas-wrap">
+            <canvas id="ac-canvas"></canvas>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block prefs %}
+<div class="prefs-row" id="pref-radius-row">
+    <span class="prefs-label">Corner radius</span>
+    <div class="ac-range-row">
+        <input type="range" class="ac-range" id="pref-radius" min="0" max="50" step="1">
+        <span class="ac-range-val" id="pref-radius-val"></span>
+    </div>
+</div>
+<div class="prefs-row">
+    <span class="prefs-label">Inset border</span>
+    <button class="prefs-toggle" id="pref-border-toggle"></button>
+</div>
+<div class="prefs-row" id="pref-border-width-row">
+    <span class="prefs-label">Border width</span>
+    <div class="ac-range-row">
+        <input type="range" class="ac-range" id="pref-border-width" min="1" max="30" step="1">
+        <span class="ac-range-val" id="pref-border-width-val"></span>
+    </div>
+</div>
+<div class="prefs-row" id="pref-border-offset-row">
+    <span class="prefs-label">Border offset</span>
+    <div class="ac-range-row">
+        <input type="range" class="ac-range" id="pref-border-offset" min="0" max="30" step="1">
+        <span class="ac-range-val" id="pref-border-offset-val"></span>
+    </div>
+</div>
+<div class="prefs-row" id="pref-border-opacity-row">
+    <span class="prefs-label">Border lightness</span>
+    <div class="ac-range-row">
+        <input type="range" class="ac-range" id="pref-border-opacity" min="5" max="95" step="5">
+        <span class="ac-range-val" id="pref-border-opacity-val"></span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var MIN_CROP = 40;
+    var HANDLE_R = 7;
+    var MAX_EXPORT = 1024;
+
+    // ── State ─────────────────────────────────────────────────────────────────
+
+    var state = {
+        img: null,
+        imgX: 0, imgY: 0, imgW: 0, imgH: 0,
+        normCrop: { x: 0.1, y: 0.1, w: 0.8, h: 0.8 },
+        cropX: 0, cropY: 0, cropW: 0, cropH: 0,
+        dragMode: null,
+        dragHandle: null,
+        dragStartX: 0, dragStartY: 0,
+        dragStartCrop: null,
+        shape: 'rect',
+        radius: 20,
+        borderEnabled: false,
+        borderWidth: 8,
+        borderOffset: 0,
+        borderOpacity: 40,
+        dpr: 1,
+    };
+
+    // ── Prefs (URL params) ────────────────────────────────────────────────────
+
+    /** Read preferences from URL query string. */
+    function getPrefs() {
+        var p = new URLSearchParams(window.location.search);
+        return {
+            shape:         p.get('shape') || 'rect',
+            radius:        Math.max(0, Math.min(50, parseInt(p.get('r') || '20', 10))),
+            borderEnabled: p.get('border') === '1',
+            borderWidth:   Math.max(1, Math.min(30, parseInt(p.get('bw') || '8', 10))),
+            borderOffset:  Math.max(0, Math.min(30, parseInt(p.get('boff') || '0', 10))),
+            borderOpacity: Math.max(5, Math.min(95, parseInt(p.get('bo') || '40', 10))),
+        };
+    }
+
+    /** Persist a single preference key to the URL without reloading. */
+    function setParam(key, val) {
+        var p = new URLSearchParams(window.location.search);
+        p.set(key, val);
+        history.replaceState(null, '', '?' + p.toString());
+    }
+
+    /** Copy prefs into state and sync UI controls to reflect them. */
+    function syncPrefsToState() {
+        var prefs = getPrefs();
+        state.shape         = prefs.shape;
+        state.radius        = prefs.radius;
+        state.borderEnabled = prefs.borderEnabled;
+        state.borderWidth   = prefs.borderWidth;
+        state.borderOffset  = prefs.borderOffset;
+        state.borderOpacity = prefs.borderOpacity;
+
+        // Shape buttons
+        document.querySelectorAll('.ac-shape-btn').forEach(function (btn) {
+            btn.classList.toggle('active', btn.dataset.shape === state.shape);
+        });
+
+        // Radius slider
+        document.getElementById('pref-radius').value = state.radius;
+        document.getElementById('pref-radius-val').textContent = state.radius + '%';
+        document.getElementById('pref-radius-row').style.display =
+            state.shape === 'round' ? '' : 'none';
+
+        // Border toggle
+        document.getElementById('pref-border-toggle').textContent =
+            state.borderEnabled ? 'On' : 'Off';
+        document.getElementById('pref-border-toggle').classList.toggle('active', state.borderEnabled);
+
+        // Border sliders
+        document.getElementById('pref-border-width').value = state.borderWidth;
+        document.getElementById('pref-border-width-val').textContent = state.borderWidth + '%';
+        document.getElementById('pref-border-offset').value = state.borderOffset;
+        document.getElementById('pref-border-offset-val').textContent = state.borderOffset + '%';
+        document.getElementById('pref-border-opacity').value = state.borderOpacity;
+        document.getElementById('pref-border-opacity-val').textContent = state.borderOpacity + '%';
+
+        var showBorder = state.borderEnabled;
+        document.getElementById('pref-border-width-row').style.display   = showBorder ? '' : 'none';
+        document.getElementById('pref-border-offset-row').style.display   = showBorder ? '' : 'none';
+        document.getElementById('pref-border-opacity-row').style.display  = showBorder ? '' : 'none';
+    }
+
+    // ── Canvas path helpers ───────────────────────────────────────────────────
+
+    /** Add the crop shape to the current path without calling beginPath. */
+    function traceCropShape(ctx, x, y, w, h) {
+        if (state.shape === 'circle') {
+            // moveTo starts a new subpath so the arc never implicitly connects
+            // to a previous path with a lineTo (unlike rect/roundRect which do this automatically)
+            ctx.moveTo(x + w / 2 + w / 2, y + h / 2);
+            ctx.arc(x + w / 2, y + h / 2, w / 2, 0, 2 * Math.PI);
+        } else if (state.shape === 'round') {
+            var rPx = (state.radius / 100) * Math.min(w, h) / 2;
+            ctx.roundRect(x, y, w, h, rPx);
+        } else {
+            ctx.rect(x, y, w, h);
+        }
+    }
+
+    /** Start a fresh path and trace the crop shape. */
+    function pathCropShape(ctx, x, y, w, h) {
+        ctx.beginPath();
+        traceCropShape(ctx, x, y, w, h);
+    }
+
+    /** Draw an inset lighter ring using even-odd clipping. */
+    function drawBorderRing(ctx, x, y, w, h, ringPx, offsetPx) {
+        if (ringPx <= 0) return;
+        // Outer edge of ring is inset by offsetPx from the crop edge
+        var outer = { x: x + offsetPx, y: y + offsetPx, w: w - 2 * offsetPx, h: h - 2 * offsetPx };
+        if (outer.w <= 0 || outer.h <= 0) return;
+        // Inner edge of ring is inset by an additional ringPx
+        var inner = { x: outer.x + ringPx, y: outer.y + ringPx, w: outer.w - 2 * ringPx, h: outer.h - 2 * ringPx };
+        if (inner.w <= 0 || inner.h <= 0) return;
+        ctx.save();
+        // A single beginPath with both shapes; evenodd fill rule creates the donut region
+        ctx.beginPath();
+        traceCropShape(ctx, outer.x, outer.y, outer.w, outer.h);
+        traceCropShape(ctx, inner.x, inner.y, inner.w, inner.h);
+        ctx.clip('evenodd');
+        ctx.fillStyle = 'rgba(255,255,255,' + (state.borderOpacity / 100) + ')';
+        ctx.fillRect(x - 1, y - 1, w + 2, h + 2);
+        ctx.restore();
+    }
+
+    // ── Layout ────────────────────────────────────────────────────────────────
+
+    /** Compute image draw rect (scale-to-fit, centered) and refresh crop px from normCrop. */
+    function recomputeLayout() {
+        if (!state.img) return;
+        var cW = canvas.width  / state.dpr;
+        var cH = canvas.height / state.dpr;
+        var scale = Math.min(cW / state.img.naturalWidth, cH / state.img.naturalHeight);
+        state.imgW = state.img.naturalWidth  * scale;
+        state.imgH = state.img.naturalHeight * scale;
+        state.imgX = (cW - state.imgW) / 2;
+        state.imgY = (cH - state.imgH) / 2;
+        normToCrop();
+    }
+
+    /** Convert normCrop fractions → display pixel crop rect. */
+    function normToCrop() {
+        state.cropX = state.imgX + state.normCrop.x * state.imgW;
+        state.cropY = state.imgY + state.normCrop.y * state.imgH;
+        state.cropW = state.normCrop.w * state.imgW;
+        state.cropH = state.normCrop.h * state.imgH;
+    }
+
+    /** Save current display crop back to normCrop fractions. */
+    function saveNormCrop() {
+        state.normCrop.x = (state.cropX - state.imgX) / state.imgW;
+        state.normCrop.y = (state.cropY - state.imgY) / state.imgH;
+        state.normCrop.w = state.cropW / state.imgW;
+        state.normCrop.h = state.cropH / state.imgH;
+    }
+
+    /** Enforce square crop and clamp to image bounds for circle shape. */
+    function enforceCircle() {
+        var side = Math.max(MIN_CROP, Math.min(state.cropW, state.cropH));
+        var cx   = state.cropX + state.cropW / 2;
+        var cy   = state.cropY + state.cropH / 2;
+        state.cropW = side;
+        state.cropH = side;
+        state.cropX = cx - side / 2;
+        state.cropY = cy - side / 2;
+        clampCrop();
+    }
+
+    /** Clamp crop rectangle to stay within the image draw bounds. */
+    function clampCrop() {
+        state.cropW = Math.max(MIN_CROP, Math.min(state.cropW, state.imgW));
+        state.cropH = Math.max(MIN_CROP, Math.min(state.cropH, state.imgH));
+        state.cropX = Math.max(state.imgX, Math.min(state.cropX, state.imgX + state.imgW - state.cropW));
+        state.cropY = Math.max(state.imgY, Math.min(state.cropY, state.imgY + state.imgH - state.cropH));
+    }
+
+    // ── Handle geometry ───────────────────────────────────────────────────────
+
+    /** Return the 8 resize handle descriptors (id + center position). */
+    function computeHandles() {
+        var x = state.cropX, y = state.cropY, w = state.cropW, h = state.cropH;
+        var cx = x + w / 2, cy = y + h / 2;
+        return [
+            { id: 'tl', hx: x,      hy: y      },
+            { id: 'tc', hx: cx,     hy: y      },
+            { id: 'tr', hx: x + w,  hy: y      },
+            { id: 'ml', hx: x,      hy: cy     },
+            { id: 'mr', hx: x + w,  hy: cy     },
+            { id: 'bl', hx: x,      hy: y + h  },
+            { id: 'bc', hx: cx,     hy: y + h  },
+            { id: 'br', hx: x + w,  hy: y + h  },
+        ];
+    }
+
+    /** Return the handle id under (mx, my), or null. */
+    function hitTestHandles(mx, my) {
+        var handles = computeHandles();
+        for (var i = 0; i < handles.length; i++) {
+            var dx = mx - handles[i].hx;
+            var dy = my - handles[i].hy;
+            if (dx * dx + dy * dy <= HANDLE_R * HANDLE_R) return handles[i].id;
+        }
+        return null;
+    }
+
+    /** Return true if (mx, my) is inside the crop rectangle. */
+    function hitTestInterior(mx, my) {
+        return mx >= state.cropX && mx <= state.cropX + state.cropW &&
+               my >= state.cropY && my <= state.cropY + state.cropH;
+    }
+
+    /** Cursor style for a given handle id. */
+    var HANDLE_CURSORS = {
+        tl: 'nwse-resize', tc: 'ns-resize',  tr: 'nesw-resize',
+        ml: 'ew-resize',                      mr: 'ew-resize',
+        bl: 'nesw-resize', bc: 'ns-resize',   br: 'nwse-resize',
+    };
+
+    /** Apply a handle drag delta to the crop rectangle. */
+    function applyHandleDrag(id, dx, dy) {
+        // Restore to drag-start snapshot first
+        state.cropX = state.dragStartCrop.x;
+        state.cropY = state.dragStartCrop.y;
+        state.cropW = state.dragStartCrop.w;
+        state.cropH = state.dragStartCrop.h;
+
+        if (id === 'tl') { state.cropX += dx; state.cropY += dy; state.cropW -= dx; state.cropH -= dy; }
+        if (id === 'tc') { state.cropY += dy; state.cropH -= dy; }
+        if (id === 'tr') { state.cropY += dy; state.cropW += dx; state.cropH -= dy; }
+        if (id === 'ml') { state.cropX += dx; state.cropW -= dx; }
+        if (id === 'mr') { state.cropW += dx; }
+        if (id === 'bl') { state.cropX += dx; state.cropW -= dx; state.cropH += dy; }
+        if (id === 'bc') { state.cropH += dy; }
+        if (id === 'br') { state.cropW += dx; state.cropH += dy; }
+
+        clampCrop();
+        if (state.shape === 'circle') enforceCircle();
+    }
+
+    // ── Drawing ───────────────────────────────────────────────────────────────
+
+    var canvas = document.getElementById('ac-canvas');
+    var ctx    = canvas.getContext('2d');
+
+    /** Render the full preview: image, dim overlay, crop outline, ring, handles. */
+    function drawPreview() {
+        if (!state.img) return;
+        var dpr = state.dpr;
+        ctx.save();
+        ctx.scale(dpr, dpr);
+
+        var cW = canvas.width  / dpr;
+        var cH = canvas.height / dpr;
+
+        // Clear
+        ctx.clearRect(0, 0, cW, cH);
+
+        // Draw source image scaled to fit
+        ctx.drawImage(state.img, state.imgX, state.imgY, state.imgW, state.imgH);
+
+        // Dim outside the crop shape
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0, 0, cW, cH);
+        ctx.globalCompositeOperation = 'destination-out';
+        pathCropShape(ctx, state.cropX, state.cropY, state.cropW, state.cropH);
+        ctx.fill();
+        ctx.restore();
+
+        // Crop shape outline
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+        ctx.lineWidth = 1;
+        pathCropShape(ctx, state.cropX, state.cropY, state.cropW, state.cropH);
+        ctx.stroke();
+        ctx.restore();
+
+        // Inset border ring preview
+        if (state.borderEnabled) {
+            var minDim   = Math.min(state.cropW, state.cropH);
+            var ringPx   = (state.borderWidth  / 100) * minDim;
+            var offsetPx = (state.borderOffset / 100) * minDim;
+            drawBorderRing(ctx, state.cropX, state.cropY, state.cropW, state.cropH, ringPx, offsetPx);
+        }
+
+        // Resize handles
+        var handles = computeHandles();
+        var accent  = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#7eb8f7';
+        handles.forEach(function (h) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(h.hx, h.hy, HANDLE_R, 0, 2 * Math.PI);
+            ctx.fillStyle   = '#ffffff';
+            ctx.strokeStyle = accent;
+            ctx.lineWidth   = 2;
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        });
+
+        ctx.restore();
+    }
+
+    // ── Interaction ───────────────────────────────────────────────────────────
+
+    /** Convert a mouse/touch event to canvas CSS-space coordinates. */
+    function toCanvasCoords(e) {
+        var r = canvas.getBoundingClientRect();
+        return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+
+    canvas.addEventListener('mousedown', function (e) {
+        if (!state.img) return;
+        var pt    = toCanvasCoords(e);
+        var hid   = hitTestHandles(pt.x, pt.y);
+        var inner = !hid && hitTestInterior(pt.x, pt.y);
+        if (!hid && !inner) return;
+
+        state.dragMode      = hid ? 'handle' : 'move';
+        state.dragHandle    = hid || null;
+        state.dragStartX    = pt.x;
+        state.dragStartY    = pt.y;
+        state.dragStartCrop = { x: state.cropX, y: state.cropY, w: state.cropW, h: state.cropH };
+        e.preventDefault();
+    });
+
+    canvas.addEventListener('mousemove', function (e) {
+        var pt = toCanvasCoords(e);
+        if (!state.dragMode) {
+            var hid = hitTestHandles(pt.x, pt.y);
+            canvas.style.cursor = hid ? HANDLE_CURSORS[hid]
+                : hitTestInterior(pt.x, pt.y) ? 'move' : 'crosshair';
+            return;
+        }
+        var dx = pt.x - state.dragStartX;
+        var dy = pt.y - state.dragStartY;
+
+        if (state.dragMode === 'move') {
+            state.cropX = state.dragStartCrop.x + dx;
+            state.cropY = state.dragStartCrop.y + dy;
+            clampCrop();
+        } else {
+            applyHandleDrag(state.dragHandle, dx, dy);
+        }
+        saveNormCrop();
+        drawPreview();
+    });
+
+    function endDrag() {
+        state.dragMode   = null;
+        state.dragHandle = null;
+    }
+    canvas.addEventListener('mouseup',    endDrag);
+    canvas.addEventListener('mouseleave', endDrag);
+
+    // Touch support
+    function touchCoords(e) {
+        return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+    }
+    canvas.addEventListener('touchstart', function (e) {
+        canvas.dispatchEvent(new MouseEvent('mousedown', touchCoords(e)));
+        e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchmove', function (e) {
+        canvas.dispatchEvent(new MouseEvent('mousemove', touchCoords(e)));
+        e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchend', endDrag);
+
+    // ── Export ────────────────────────────────────────────────────────────────
+
+    /** Export the cropped image as a PNG and trigger a download. */
+    function exportPNG() {
+        if (!state.img) return;
+
+        // Scale from display coords to source image coords
+        var scaleX = state.img.naturalWidth  / state.imgW;
+        var scaleY = state.img.naturalHeight / state.imgH;
+        var srcX   = (state.cropX - state.imgX) * scaleX;
+        var srcY   = (state.cropY - state.imgY) * scaleY;
+        var srcW   = state.cropW * scaleX;
+        var srcH   = state.cropH * scaleY;
+
+        // Cap at MAX_EXPORT on the larger side
+        var outW = srcW, outH = srcH;
+        if (Math.max(outW, outH) > MAX_EXPORT) {
+            var s = MAX_EXPORT / Math.max(outW, outH);
+            outW  = Math.round(outW * s);
+            outH  = Math.round(outH * s);
+        } else {
+            outW = Math.round(outW);
+            outH = Math.round(outH);
+        }
+
+        var off  = document.createElement('canvas');
+        off.width  = outW;
+        off.height = outH;
+        var octx = off.getContext('2d');
+
+        // Clip to shape and draw image
+        octx.save();
+        octx.beginPath();
+        pathCropShape(octx, 0, 0, outW, outH);
+        octx.clip();
+        octx.drawImage(state.img, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+        octx.restore();
+
+        // Inset border ring
+        if (state.borderEnabled) {
+            var minDim   = Math.min(outW, outH);
+            var ringPx   = (state.borderWidth  / 100) * minDim;
+            var offsetPx = (state.borderOffset / 100) * minDim;
+            drawBorderRing(octx, 0, 0, outW, outH, ringPx, offsetPx);
+        }
+
+        var url = off.toDataURL('image/png');
+        var a   = document.createElement('a');
+        a.href     = url;
+        a.download = 'avatar.png';
+        a.click();
+    }
+
+    // ── Image loading ─────────────────────────────────────────────────────────
+
+    /** Load a File object as the source image and switch to editor mode. */
+    function loadImage(file) {
+        if (!file || !file.type.startsWith('image/')) return;
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+            var img    = new Image();
+            img.onload = function () {
+                state.img = img;
+                document.getElementById('ac-root').classList.add('has-image');
+                // Initialize normCrop: largest centered square for circle, else 80% rect
+                if (state.shape === 'circle') {
+                    var side = Math.min(img.naturalWidth, img.naturalHeight);
+                    var mx   = (img.naturalWidth  - side) / 2 / img.naturalWidth;
+                    var my   = (img.naturalHeight - side) / 2 / img.naturalHeight;
+                    state.normCrop = { x: mx, y: my, w: side / img.naturalWidth, h: side / img.naturalHeight };
+                } else {
+                    state.normCrop = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+                }
+                recomputeLayout();
+                drawPreview();
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // ── Resize observer ───────────────────────────────────────────────────────
+
+    var wrap = document.getElementById('ac-canvas-wrap');
+    var ro   = new ResizeObserver(function (entries) {
+        var rect = entries[0].contentRect;
+        var dpr  = window.devicePixelRatio || 1;
+        state.dpr      = dpr;
+        canvas.width   = Math.round(rect.width  * dpr);
+        canvas.height  = Math.round(rect.height * dpr);
+        canvas.style.width  = rect.width  + 'px';
+        canvas.style.height = rect.height + 'px';
+        recomputeLayout();
+        drawPreview();
+    });
+    ro.observe(wrap);
+
+    // ── Event wiring ──────────────────────────────────────────────────────────
+
+    // Drop zone
+    var dropZone = document.getElementById('ac-drop-zone');
+    var fileInput = document.getElementById('ac-file-input');
+
+    dropZone.addEventListener('click', function () { fileInput.click(); });
+    dropZone.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') fileInput.click();
+    });
+    dropZone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', function () {
+        dropZone.classList.remove('drag-over');
+    });
+    dropZone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        loadImage(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', function () {
+        loadImage(fileInput.files[0]);
+        fileInput.value = '';
+    });
+
+    // New image button
+    document.getElementById('ac-new-btn').addEventListener('click', function () {
+        state.img = null;
+        document.getElementById('ac-root').classList.remove('has-image');
+    });
+
+    // Download button
+    document.getElementById('ac-download-btn').addEventListener('click', exportPNG);
+
+    // Shape buttons
+    document.querySelectorAll('.ac-shape-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            setParam('shape', btn.dataset.shape);
+            syncPrefsToState();
+            if (state.img) {
+                if (state.shape === 'circle') {
+                    // Re-init to largest centered square
+                    var img  = state.img;
+                    var side = Math.min(img.naturalWidth, img.naturalHeight);
+                    var mx   = (img.naturalWidth  - side) / 2 / img.naturalWidth;
+                    var my   = (img.naturalHeight - side) / 2 / img.naturalHeight;
+                    state.normCrop = { x: mx, y: my, w: side / img.naturalWidth, h: side / img.naturalHeight };
+                    normToCrop();
+                    enforceCircle();
+                    saveNormCrop();
+                }
+                drawPreview();
+            }
+        });
+    });
+
+    // Radius slider
+    document.getElementById('pref-radius').addEventListener('input', function () {
+        setParam('r', this.value);
+        syncPrefsToState();
+        drawPreview();
+    });
+
+    // Border toggle
+    document.getElementById('pref-border-toggle').addEventListener('click', function () {
+        setParam('border', state.borderEnabled ? '0' : '1');
+        syncPrefsToState();
+        drawPreview();
+    });
+
+    // Border width slider
+    document.getElementById('pref-border-width').addEventListener('input', function () {
+        setParam('bw', this.value);
+        syncPrefsToState();
+        drawPreview();
+    });
+
+    // Border offset slider
+    document.getElementById('pref-border-offset').addEventListener('input', function () {
+        setParam('boff', this.value);
+        syncPrefsToState();
+        drawPreview();
+    });
+
+    // Border opacity slider
+    document.getElementById('pref-border-opacity').addEventListener('input', function () {
+        setParam('bo', this.value);
+        syncPrefsToState();
+        drawPreview();
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+
+    syncPrefsToState();
+
+})();
+</script>
+{% endblock %}
