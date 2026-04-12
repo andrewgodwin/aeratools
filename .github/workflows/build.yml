@@ -36,6 +36,9 @@ jobs:
             dashboard:
               - 'dashboard/**'
               - 'common/**'
+            filedrop:
+              - 'filedrop/**'
+              - 'common/**'
             gist:
               - 'gist/**'
               - 'common/**'

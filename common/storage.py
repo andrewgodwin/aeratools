@@ -6,6 +6,7 @@ import fcntl
 import hashlib
 import json
 import os
+import shutil
 
 import boto3
 from botocore.exceptions import ClientError
@@ -109,6 +110,38 @@ class S3Storage:
                 files.append(obj["Key"][len(base) :])
         return files
 
+    def store_bytes(
+        self,
+        user_id: str,
+        file: str,
+        stream,
+        content_type: str = "application/octet-stream",
+    ):
+        """
+        Store binary data from a file-like stream.
+        """
+        self.client.upload_fileobj(
+            stream,
+            self.bucket,
+            self._path(user_id, file),
+            ExtraArgs={"ContentType": content_type},
+        )
+
+    def retrieve_bytes(self, user_id: str, file: str):
+        """
+        Return a readable binary stream, or None if not found.
+        """
+        try:
+            response = self.client.get_object(
+                Bucket=self.bucket,
+                Key=self._path(user_id, file),
+            )
+        except ClientError as e:
+            if e.response["Error"]["Code"] in ("NoSuchKey", "404"):
+                return None
+            raise
+        return response["Body"]
+
 
 class LocalStorage:
     """
@@ -179,6 +212,31 @@ class LocalStorage:
         if prefix is not None:
             files = [f for f in files if f.startswith(prefix)]
         return sorted(files)
+
+    def store_bytes(
+        self,
+        user_id: str,
+        file: str,
+        stream,
+        content_type: str = "application/octet-stream",
+    ):
+        """
+        Store binary data from a file-like stream.
+        """
+        path = self._path(user_id, file)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            shutil.copyfileobj(stream, f)
+
+    def retrieve_bytes(self, user_id: str, file: str):
+        """
+        Return a readable binary stream, or None if not found.
+        """
+        path = self._path(user_id, file)
+        try:
+            return open(path, "rb")
+        except FileNotFoundError:
+            return None
 
 
 def get_storage():
