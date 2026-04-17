@@ -170,30 +170,30 @@
 
     // ── WMO → search query ──
     var WMO_QUERY = {
-        0:  'golden hour sunny clear sky landscape nature',
-        1:  'sunny mostly clear sky landscape',
-        2:  'partly cloudy sky landscape scenic',
-        3:  'overcast gray clouds moody landscape',
-        45: 'foggy misty morning forest landscape',
-        48: 'freezing fog icy winter landscape',
-        51: 'light drizzle rain wet cobblestone',
-        53: 'drizzle rain moody landscape',
-        55: 'heavy drizzle rain storm landscape',
-        61: 'light rain puddles landscape',
-        63: 'rainy day storm landscape',
-        65: 'heavy rain storm flooding landscape',
-        71: 'light snowfall winter landscape',
-        73: 'snowy winter forest landscape',
-        75: 'heavy snow blizzard winter landscape',
-        77: 'frost ice crystals winter landscape',
-        80: 'rain shower rainbow landscape',
-        81: 'rain showers dark clouds landscape',
-        82: 'heavy rain storm landscape',
-        85: 'snow shower winter landscape',
-        86: 'heavy snowfall blizzard winter',
-        95: 'thunderstorm lightning dramatic sky',
-        96: 'thunderstorm hail lightning storm',
-        99: 'severe thunderstorm lightning dramatic',
+        0:  'golden hour mountains',
+        1:  'sunny mountains',
+        2:  'cloudy mountains',
+        3:  'overcast mountains',
+        45: 'misty mountains',
+        48: 'freezing mountains',
+        51: 'wet mountains',
+        53: 'drizzle mountains',
+        55: 'drizzle mountains',
+        61: 'light rain mountains',
+        63: 'rain storm mountains',
+        65: 'heavy rain mountains',
+        71: 'light snow mountains',
+        73: 'snowy forest mountains',
+        75: 'blizzard mountains',
+        77: 'frost mountains',
+        80: 'rainbow mountains',
+        81: 'dark clouds mountains',
+        82: 'rain storm mountains',
+        85: 'snow mountains',
+        86: 'blizzard mountains',
+        95: 'lightning mountains',
+        96: 'hail mountains',
+        99: 'hail mountains',
     };
 
     var WMO_DESC = {
@@ -294,7 +294,7 @@
         for (var i = codes.length - 1; i >= 0; i--) {
             if (codes[i] <= code) return WMO_QUERY[codes[i]];
         }
-        return 'landscape nature scenic';
+        return 'mountains';
     }
 
     function wmoDesc(code) {
@@ -391,18 +391,22 @@
         var url = 'https://api.unsplash.com/photos/random' +
             '?query=' + encodeURIComponent(query) +
             '&orientation=landscape' +
+            '&count=10' +
             '&client_id=' + encodeURIComponent(key);
         return fetch(url)
             .then(function (r) {
                 if (!r.ok) throw new Error('Unsplash error ' + r.status);
                 return r.json();
             })
-            .then(function (data) {
+            .then(function (photos) {
+                var best = photos.reduce(function (a, b) {
+                    return (b.downloads > a.downloads) ? b : a;
+                });
                 return {
-                    url:           data.urls.regular,
-                    photoPage:     data.links.html + '?utm_source=weather_art&utm_medium=referral',
-                    photographerName: data.user.name,
-                    photographerUrl:  data.user.links.html + '?utm_source=weather_art&utm_medium=referral',
+                    url:              best.urls.regular,
+                    photoPage:        best.links.html + '?utm_source=weather_art&utm_medium=referral',
+                    photographerName: best.user.name,
+                    photographerUrl:  best.user.links.html + '?utm_source=weather_art&utm_medium=referral',
                 };
             });
     }
