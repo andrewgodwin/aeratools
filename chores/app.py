@@ -280,6 +280,19 @@ def parse_schedule_from_form(form, schedule_type):
     return {}
 
 
+def parse_start_date(value, fallback):
+    """
+    Return a validated ISO start date from form input, falling back if blank or invalid.
+    """
+    value = (value or "").strip()
+    if not value:
+        return fallback
+    try:
+        return date.fromisoformat(value).isoformat()
+    except ValueError:
+        return fallback
+
+
 @app.template_filter("schedule_label")
 def schedule_label(chore):
     """
@@ -604,6 +617,10 @@ def edit_chore(chore_id):
     schedule = parse_schedule_from_form(request.form, schedule_type)
     last_completed = request.form.get("last_completed", "").strip() or None
     snoozed_until = request.form.get("snoozed_until", "").strip() or None
+    start_date = parse_start_date(
+        request.form.get("start_date"),
+        chore.get("created_at") or get_today().isoformat(),
+    )
 
     storage = get_storage()
     for _ in range(5):
@@ -621,6 +638,7 @@ def edit_chore(chore_id):
         c["vanish_if_missed"] = bool(request.form.get("vanish_if_missed"))
         c["last_completed"] = last_completed
         c["snoozed_until"] = snoozed_until
+        c["created_at"] = start_date
         try:
             storage.store(user, CHORES_FILE, data, version=etag)
             if lst:

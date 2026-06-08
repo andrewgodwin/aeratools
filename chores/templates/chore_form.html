@@ -326,8 +326,18 @@ New chore — Chores
                 {% endfor %}
             </select>
             <p style="color:var(--muted);font-size:0.8rem;margin-top:0.3rem">
-                Repeats every other {{ full_names[bw_day] }}, anchored to the chore's creation date.
+                Repeats every other {{ full_names[bw_day] }}, anchored to the start date below.
             </p>
+            {% if chore %}
+            <div style="margin-top:0.9rem">
+                <label class="field-label" for="start_date">Start date</label>
+                <input type="date" name="start_date" id="start_date"
+                       value="{{ chore.created_at[:10] if chore.created_at else '' }}" style="width:auto">
+                <p style="color:var(--muted);font-size:0.8rem;margin-top:0.3rem">
+                    The anchor the every-other-week cycle is counted from.
+                </p>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Vanish if missed (hidden for relative) -->
@@ -422,7 +432,7 @@ document.cookie = 'tz=' + Intl.DateTimeFormat().resolvedOptions().timeZone + '; 
     var fullNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     if (bwSelect && bwHint) {
         bwSelect.addEventListener('change', function () {
-            bwHint.textContent = 'Repeats every other ' + fullNames[parseInt(bwSelect.value)] + ', anchored to the chore\'s creation date.';
+            bwHint.textContent = 'Repeats every other ' + fullNames[parseInt(bwSelect.value)] + ', anchored to the start date below.';
         });
     }
 })();
