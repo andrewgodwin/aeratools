@@ -15,9 +15,24 @@ from storage import get_storage
 
 app = Flask(__name__)
 app.config["ROOT_DOMAIN"] = os.environ.get("ROOT_DOMAIN", "")
+app.config["ALLOWED_EMAIL_DOMAINS"] = [
+    d.strip().lower()
+    for d in os.environ.get("ALLOWED_EMAIL_DOMAINS", "").split(",")
+    if d.strip()
+]
 register_auth_context(app)
 
 TOKEN_TTL = 15 * 60  # 15 minutes
+
+
+def _is_domain_allowed(email):
+    """
+    Return True if the email's domain is permitted to sign in.
+    """
+    allowed = app.config["ALLOWED_EMAIL_DOMAINS"]
+    if not allowed:
+        return True
+    return email.rsplit("@", 1)[-1] in allowed
 
 
 def _send_email(to_addr, subject, body):
@@ -76,6 +91,13 @@ def login():
     if not email or "@" not in email or "." not in email.split("@")[-1]:
         return render_template(
             "index.html", error="Please enter a valid email address.", next=next_url
+        )
+
+    if not _is_domain_allowed(email):
+        return render_template(
+            "index.html",
+            error="This email address is not permitted to sign in.",
+            next=next_url,
         )
 
     code = f"{secrets.randbelow(1_000_000):06d}"

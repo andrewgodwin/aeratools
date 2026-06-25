@@ -14,6 +14,7 @@ Email-based magic-link authentication for aeratools. Sets a signed JWT session c
 | Variable | Required | Description |
 |---|---|---|
 | `ROOT_DOMAIN` | yes | e.g. `example.com` — cookie domain and auth URL base |
+| `ALLOWED_EMAIL_DOMAINS` | no | Comma-separated list of email domains permitted to sign in (e.g. `example.com,example.org`). If unset, all domains are allowed |
 | `SESSION_SECRET` | yes | Secret key for signing JWTs, shared with all tools that call `get_current_user` |
 | `S3_ENDPOINT_URL` | yes | Object store endpoint |
 | `AWS_ACCESS_KEY_ID` | yes | Object store key |
