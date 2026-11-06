@@ -460,7 +460,7 @@
         const x = layout.dayX(plan.rows.get(row.id).start);
         s('line', {
             x1: x, x2: x, y1: AXIS_H, y2: layout.height - 12,
-            stroke: pal.milestone, 'stroke-width': 3,
+            stroke: pal.milestone, 'stroke-width': 8, 'stroke-opacity': 0.5,
         }, layer);
     }
 
