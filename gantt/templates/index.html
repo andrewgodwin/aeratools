@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Gantt{% endblock %}
+{% block toolname %}Gantt{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/gantt.css">{% endblock %}
+{% block content %}
+<div class="single-center gantt-landing">
+    <h1>Gantt</h1>
+    <p>Plan tasks with dependencies and staffing needs, then change how many people you
+    have and watch the end date move.</p>
+    <form method="post" action="/new">
+        <button type="submit" class="g-btn g-primary"><i class="bi-plus-lg"></i> New chart</button>
+    </form>
+    <p class="gantt-note">Each chart lives at a private link. Anyone with the link can
+    edit it, so keep hold of it.</p>
+    <div id="recent" hidden>
+        <h2>Recently opened in this browser</h2>
+        <ul id="recent-list"></ul>
+    </div>
+</div>
+{% endblock %}
+{% block prefs %}
+<p class="prefs-label">Open a chart to change its settings.</p>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+    var recent = [];
+    try {
+        recent = JSON.parse(localStorage.getItem('gantt-recent')) || [];
+    } catch (e) {}
+    var list = document.getElementById('recent-list');
+    recent.forEach(function (item) {
+        if (!/^[A-Za-z0-9_-]{43}$/.test(item.token)) return;
+        var a = document.createElement('a');
+        a.href = '/' + item.token;
+        a.textContent = item.title || 'Untitled chart';
+        var li = document.createElement('li');
+        li.appendChild(a);
+        list.appendChild(li);
+    });
+    document.getElementById('recent').hidden = !list.children.length;
+})();
+</script>
+{% endblock %}

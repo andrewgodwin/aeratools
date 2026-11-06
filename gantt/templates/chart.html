@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{{ chart.title }}{% endblock %}
+{% block toolname %}Gantt{% endblock %}
+{% block head %}<link rel="stylesheet" href="/static/gantt.css">{% endblock %}
+{% block header_extra %}<span class="g-status" id="save-status" role="status"></span>{% endblock %}
+{% block content %}
+<div class="g-app">
+    <div class="g-toolbar">
+        <input class="g-title" id="title" aria-label="Chart title" maxlength="200">
+        <div class="g-limits" id="limits" aria-label="Maximum concurrent staff"></div>
+        <div class="g-outcome" id="outcome" aria-live="polite"></div>
+        <div class="g-actions">
+            <button class="g-btn" id="add-task"><i class="bi-plus-lg"></i> Task</button>
+            <button class="g-btn" id="add-group"><i class="bi-plus-lg"></i> Group</button>
+            <button class="g-btn" id="add-milestone"><i class="bi-plus-lg"></i> Milestone</button>
+        </div>
+    </div>
+    <div class="g-warning" id="warning" hidden></div>
+    <div class="g-scroll" id="scroll">
+        <svg id="chart" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Gantt chart"></svg>
+        <div class="g-empty" id="empty" hidden>
+            <p>No tasks yet.</p>
+            <p>Add a task to start, or set your people and holidays from the cog menu.</p>
+        </div>
+    </div>
+</div>
+<dialog class="g-dialog" id="dialog"></dialog>
+{% endblock %}
+{% block prefs %}
+<button class="prefs-toggle" id="open-people"><i class="bi-people"></i> People types&hellip;</button>
+<button class="prefs-toggle" id="open-timeline"><i class="bi-calendar-week"></i> Timeline &amp; holidays&hellip;</button>
+<button class="prefs-toggle" id="export-png"><i class="bi-image"></i> Download PNG</button>
+<button class="prefs-toggle" id="export-svg"><i class="bi-filetype-svg"></i> Download SVG</button>
+{% endblock %}
+{% block scripts %}
+<script>
+window.GANTT = {{ {"token": token, "rev": rev, "chart": chart}|tojson }};
+</script>
+<script src="/static/scheduler.js"></script>
+<script src="/static/gantt.js"></script>
+{% endblock %}

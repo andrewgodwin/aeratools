@@ -39,6 +39,9 @@ jobs:
             filedrop:
               - 'filedrop/**'
               - 'common/**'
+            gantt:
+              - 'gantt/**'
+              - 'common/**'
             gist:
               - 'gist/**'
               - 'common/**'

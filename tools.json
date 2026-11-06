@@ -63,6 +63,13 @@
     "icon": "bi-cloud-arrow-up",
     "name": "Filedrop"
   },
+  "gantt": {
+    "aliases": [],
+    "description": "Plan tasks and dependencies, and project end dates from staffing limits",
+    "group": "Utilities",
+    "icon": "bi-bar-chart-steps",
+    "name": "Gantt"
+  },
   "gist": {
     "aliases": [],
     "description": "Markdown paste-and-share tool",
