@@ -363,12 +363,12 @@
         }, layer);
     }
 
-    /* Return the visible dependency lines, skipping those inside a collapsed group. */
+    /* Return the lines to draw; milestones get none, as their marker shows where they land. */
     function dependencyEdges(layout) {
         const byId = new Map(chart.rows.map(r => [r.id, r]));
         const edges = [];
         for (const task of chart.rows) {
-            if (task.kind === 'group' || plan.rows.get(task.id).cyclic) continue;
+            if (task.kind !== 'task' || plan.rows.get(task.id).cyclic) continue;
             const group = layout.membership.get(task.id);
             for (const id of new Set(task.deps || [])) {
                 const pred = byId.get(id);
@@ -380,9 +380,7 @@
                     x0: pred.kind === 'milestone'
                         ? layout.dayX(plan.rows.get(pred.id).start)
                         : barEdges(layout, pred).x1,
-                    x1: task.kind === 'milestone'
-                        ? layout.dayX(plan.rows.get(task.id).start)
-                        : barEdges(layout, task).x0,
+                    x1: barEdges(layout, task).x0,
                     fromY: layout.rowY.get(pred.id),
                     toY: layout.rowY.get(task.id),
                 });
