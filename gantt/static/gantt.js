@@ -10,11 +10,13 @@
 
     const SVG_NS = 'http://www.w3.org/2000/svg';
     const FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
-    const ROW_H = 34;
-    const GROUP_H = 32;
+    const ROW_H = 30;
+    const GROUP_H = 28;
     const AXIS_H = 100;
-    const BAR_INSET = 3;
-    const BAR_PAD = 5;
+    const BAR_INSET = 4;
+    const BAR_PAD = 4;
+    const LANE_STEP = 6;
+    const ENTRY_STEP = 5;
     const GAP_W = 8;
     const MIN_WEEK_W = 64;
     const MAX_WEEK_W = 150;
@@ -23,6 +25,7 @@
     const MAX_LABEL_W = 320;
     const INDENT = 16;
     const FONT_SIZE = 13;
+    const BAR_FONT_SIZE = 14;
     const EXPORT_WIDTH = 1400;
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -52,7 +55,6 @@
     const dialog = document.getElementById('dialog');
     const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const measureContext = document.createElement('canvas').getContext('2d');
-    measureContext.font = `${FONT_SIZE}px ${FONT}`;
 
     let calendar;
     let plan;
@@ -89,7 +91,8 @@
     }
 
     /* Return the pixel width of a string in the chart font. */
-    function textWidth(text) {
+    function textWidth(text, size = FONT_SIZE) {
+        measureContext.font = `${size}px ${FONT}`;
         return measureContext.measureText(text).width;
     }
 
@@ -360,40 +363,95 @@
         }, layer);
     }
 
-    /* Draw an orthogonal dependency line between two rows. */
-    function drawDependency(layer, layout, pal, pred, task) {
-        const fromY = layout.rowY.get(pred.id);
-        const toY = layout.rowY.get(task.id);
-        const placedPred = plan.rows.get(pred.id);
-        const placedTask = plan.rows.get(task.id);
-        const x0 = pred.kind === 'milestone'
-            ? layout.dayX(placedPred.start)
-            : barEdges(layout, pred).x1;
-        const x1 = task.kind === 'milestone'
-            ? layout.dayX(placedTask.start)
-            : barEdges(layout, task).x0;
-        const elbow = Math.max(x0 + BAR_INSET, x1 - 8);
-        s('path', {
-            d: `M${x0} ${fromY}H${elbow}V${toY}H${x1}`,
-            fill: 'none',
-            stroke: pal.line,
-            'stroke-width': 1.5,
-        }, layer);
-    }
-
-    /* Draw every dependency, skipping those wholly inside a collapsed group. */
-    function drawDependencies(layer, layout, pal) {
+    /* Return the visible dependency lines, skipping those inside a collapsed group. */
+    function dependencyEdges(layout) {
         const byId = new Map(chart.rows.map(r => [r.id, r]));
+        const edges = [];
         for (const task of chart.rows) {
-            if (task.kind === 'group') continue;
+            if (task.kind === 'group' || plan.rows.get(task.id).cyclic) continue;
             const group = layout.membership.get(task.id);
-            for (const id of task.deps || []) {
+            for (const id of new Set(task.deps || [])) {
                 const pred = byId.get(id);
                 if (!pred || pred.kind === 'group' || pred.id === task.id) continue;
-                if (plan.rows.get(task.id).cyclic) continue;
                 if (group && layout.collapsed.get(group) && layout.membership.get(id) === group) continue;
-                drawDependency(layer, layout, pal, pred, task);
+                edges.push({
+                    pred,
+                    task,
+                    x0: pred.kind === 'milestone'
+                        ? layout.dayX(plan.rows.get(pred.id).start)
+                        : barEdges(layout, pred).x1,
+                    x1: task.kind === 'milestone'
+                        ? layout.dayX(plan.rows.get(task.id).start)
+                        : barEdges(layout, task).x0,
+                    fromY: layout.rowY.get(pred.id),
+                    toY: layout.rowY.get(task.id),
+                });
             }
+        }
+        return edges;
+    }
+
+    /*
+     * Give each source its own vertical lane, as sources that end together would
+     * otherwise draw on top of each other. Upper sources take the lanes further right
+     * so that their lines pass beyond the lower sources' lines.
+     */
+    function assignLanes(edges) {
+        const clusters = new Map();
+        for (const edge of edges) {
+            const key = `${edge.pred.kind}:${plan.rows.get(edge.pred.id).end}`;
+            if (!clusters.has(key)) clusters.set(key, []);
+            clusters.get(key).push(edge);
+        }
+        for (const cluster of clusters.values()) {
+            const sources = [...new Set(cluster.map(edge => edge.pred.id))];
+            const fromY = new Map(cluster.map(edge => [edge.pred.id, edge.fromY]));
+            sources.sort((a, b) => fromY.get(b) - fromY.get(a));
+            const left = Math.max(...cluster.map(edge => edge.x0));
+            const right = Math.min(...cluster.map(edge => edge.x1));
+            const step = Math.min(LANE_STEP, (right - left) / (sources.length + 1));
+            for (const edge of cluster) {
+                edge.lane = left + step * (sources.indexOf(edge.pred.id) + 1);
+            }
+        }
+    }
+
+    /*
+     * Spread the lines entering each target vertically so they don't merge. Lines from
+     * above take the upper entry points and lines from below the lower ones, ordered so
+     * that none has to cross another to reach its entry point.
+     */
+    function assignEntries(edges) {
+        const targets = new Map();
+        for (const edge of edges) {
+            if (!targets.has(edge.task.id)) targets.set(edge.task.id, []);
+            targets.get(edge.task.id).push(edge);
+        }
+        const barHeight = ROW_H - BAR_PAD * 2;
+        for (const entering of targets.values()) {
+            const fromAbove = entering.filter(e => e.fromY <= e.toY).sort((a, b) => b.lane - a.lane);
+            const fromBelow = entering.filter(e => e.fromY > e.toY).sort((a, b) => a.lane - b.lane);
+            const ordered = [...fromAbove, ...fromBelow];
+            const lines = ordered.length - 1;
+            const step = lines ? Math.min(ENTRY_STEP, (barHeight - 8) / lines) : 0;
+            ordered.forEach((edge, index) => {
+                edge.entryY = edge.toY + (index - lines / 2) * step;
+            });
+        }
+    }
+
+    /* Draw every dependency: out of the source, along its lane, then across to the target. */
+    function drawDependencies(layer, layout, pal) {
+        const edges = dependencyEdges(layout);
+        assignLanes(edges);
+        assignEntries(edges);
+        for (const { x0, x1, fromY, lane, entryY } of edges) {
+            s('path', {
+                d: `M${x0} ${fromY}H${lane}V${entryY}H${x1}`,
+                fill: 'none',
+                stroke: pal.line,
+                'stroke-width': 1.5,
+            }, layer);
         }
     }
 
@@ -463,14 +521,14 @@
         }, g);
         const marks = (placed.overLimit ? '⚠ ' : '') + (row.notBefore ? '⚑ ' : '');
         const candidates = [marks + barLabel(row), S.formatDuration(row.days)];
-        const label = candidates.find(text => textWidth(text) <= x1 - x0 - 8);
+        const label = candidates.find(text => textWidth(text, BAR_FONT_SIZE) <= x1 - x0 - 8);
         if (label) {
             s('text', {
                 x: (x0 + x1) / 2,
-                y: y + height / 2 + 4.5,
+                y: y + height / 2 + 5,
                 'text-anchor': 'middle',
                 fill: BAR_INK.text,
-                'font-size': FONT_SIZE,
+                'font-size': BAR_FONT_SIZE,
             }, g, label);
         }
         if (live) {
@@ -497,7 +555,9 @@
         const x1 = Math.max(...members.map(r => barEdges(layout, r).x1));
         const mid = entry.y + entry.height / 2;
         s('rect', {
-            x: x0, y: mid - 3, width: x1 - x0, height: 6, rx: 1, fill: pal.summary,
+            x: x0, y: mid - 3, width: x1 - x0, height: 6, rx: 1,
+            fill: pal.summary,
+            'fill-opacity': 0.3,
         }, layer);
     }
 
