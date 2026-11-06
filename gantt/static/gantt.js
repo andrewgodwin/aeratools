@@ -14,7 +14,7 @@
     const GROUP_H = 28;
     const AXIS_H = 100;
     const BAR_INSET = 4;
-    const BAR_PAD = 4;
+    const BAR_PAD = 2;
     const LANE_STEP = 6;
     const ENTRY_STEP = 5;
     const GAP_W = 8;
@@ -25,7 +25,7 @@
     const MAX_LABEL_W = 320;
     const INDENT = 16;
     const FONT_SIZE = 13;
-    const BAR_FONT_SIZE = 14;
+    const BAR_FONT_SIZE = 15;
     const EXPORT_WIDTH = 1400;
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -525,7 +525,7 @@
         if (label) {
             s('text', {
                 x: (x0 + x1) / 2,
-                y: y + height / 2 + 5,
+                y: y + height / 2 + 5.5,
                 'text-anchor': 'middle',
                 fill: BAR_INK.text,
                 'font-size': BAR_FONT_SIZE,
