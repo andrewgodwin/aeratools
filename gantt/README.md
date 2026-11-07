@@ -12,6 +12,15 @@ Each chart lives at a long random token URL, with no login. Anyone who has the U
 edit it. Charts are stored as `{rev, chart}` in the object store under the `__gantt__`
 namespace; saves carry the `rev` they were based on, and are refused if it is outdated.
 
+## Data files
+
+The cog menu can download a chart as JSON, and import such a file to replace the current
+chart in place. The file is `{"format": "aeratools-gantt", "version": 1, "chart": {...}}`,
+and a bare chart object imports too. Imports are checked in the browser before anything
+is replaced: structural problems refuse the file, while dependencies and people pointing
+at things that don't exist are dropped. To restore into a new link, create a new chart
+and import into it.
+
 ## Scheduling
 
 Scheduling runs in the browser (`static/scheduler.js`), so changing a limit is instant.

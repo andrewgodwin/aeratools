@@ -27,6 +27,15 @@
     const FONT_SIZE = 13;
     const BAR_FONT_SIZE = 15;
     const EXPORT_WIDTH = 1400;
+    const DATA_FORMAT = 'aeratools-gantt';
+    const DATA_VERSION = 1;
+    // These mirror the limits in app.py, so a chart that imports can also be saved.
+    const MAX_ROWS = 1000;
+    const MAX_TYPES = 32;
+    const MAX_EXCLUDED = 1000;
+    const MAX_BYTES = 1000000;
+    const MAX_DAYS = 2600;
+    const MAX_NEEDED = 99;
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     const TEAM_COLORS = {
@@ -42,13 +51,13 @@
     const BAR_INK = { stroke: '#333a45', text: '#1f2430', warn: '#d32f2f' };
     const DARK = {
         bg: '#0f0f13', fg: '#e8e8f0', muted: '#7b7b91', grid: '#2a2a3a', axis: '#4a4a5e',
-        line: '#a0a0b4', milestone: '#9d90ff', group: '#1a1a24', summary: '#a0a0b4', late: '#ff7b72',
+        line: '#a0a0b4', milestone: '#9d90ff', group: '#1a1a24', stripe: '#15151b', summary: '#a0a0b4', late: '#ff7b72',
     };
     const LIGHT = {
         bg: '#f0f0f5', fg: '#0f0f1a', muted: '#6c6c80', grid: '#d6d6e0', axis: '#9a9aaa',
-        line: '#4a505c', milestone: '#5b4fff', group: '#e0e0ea', summary: '#4a505c', late: '#c62828',
+        line: '#4a505c', milestone: '#5b4fff', group: '#e0e0ea', stripe: '#e9e9f0', summary: '#4a505c', late: '#c62828',
     };
-    const EXPORT = { ...LIGHT, bg: '#ffffff', group: '#f0f0f5' };
+    const EXPORT = { ...LIGHT, bg: '#ffffff', group: '#f0f0f5', stripe: '#f8f8fb' };
 
     const svg = document.getElementById('chart');
     const scroller = document.getElementById('scroll');
@@ -257,6 +266,7 @@
         const rowY = new Map();
         let y = AXIS_H;
         let labelW = MIN_LABEL_W;
+        let tasksInGroup = 0;
         chart.rows.forEach((row, index) => {
             const group = membership.get(row.id) || null;
             const indent = group ? INDENT : 0;
@@ -266,7 +276,10 @@
                 return;
             }
             const height = row.kind === 'group' ? GROUP_H : ROW_H;
-            rows.push({ row, index, y, height, indent });
+            // Striping restarts after each group header, so each group begins the same way.
+            tasksInGroup = row.kind === 'group' ? 0 : tasksInGroup + 1;
+            const striped = tasksInGroup > 0 && tasksInGroup % 2 === 0;
+            rows.push({ row, index, y, height, indent, striped });
             rowY.set(row.id, y + height / 2);
             y += height;
         });
@@ -536,11 +549,17 @@
         }
     }
 
-    /* Draw a group's header band across the chart. */
-    function drawGroupBand(layer, layout, pal, entry) {
-        s('rect', {
-            x: 0, y: entry.y, width: layout.right, height: entry.height, fill: pal.group,
-        }, layer);
+    /* Return a row's background colour, or null if it has none of its own. */
+    function rowFill(pal, entry) {
+        if (entry.row.kind === 'group') return pal.group;
+        return entry.striped ? pal.stripe : null;
+    }
+
+    /* Draw a row's background band across the chart. */
+    function drawRowBand(layer, layout, pal, entry) {
+        const fill = rowFill(pal, entry);
+        if (!fill) return;
+        s('rect', { x: 0, y: entry.y, width: layout.right, height: entry.height, fill }, layer);
     }
 
     /* Draw a group's summary span over its tasks. */
@@ -568,7 +587,7 @@
             const g = s('g', { class: 'g-row', 'data-index': index, 'data-id': row.id }, layer);
             s('rect', {
                 x: 0, y, width: layout.labelW, height,
-                fill: isGroup ? pal.group : pal.bg,
+                fill: rowFill(pal, entry) || pal.bg,
                 class: 'g-row-bg',
             }, g);
             let x = 8 + indent;
@@ -604,9 +623,7 @@
         s('rect', { x: 0, y: 0, width: layout.width, height: layout.height, fill: pal.bg }, target);
 
         const body = s('g', {}, target);
-        for (const entry of layout.rows) {
-            if (entry.row.kind === 'group') drawGroupBand(body, layout, pal, entry);
-        }
+        for (const entry of layout.rows) drawRowBand(body, layout, pal, entry);
         drawGrid(body, layout, pal);
         // Lines stay visible when a collapsed group hides the milestone's own row.
         for (const row of chart.rows) {
@@ -1200,6 +1217,155 @@
         image.src = url;
     }
 
+    /* ── Data import and export ── */
+
+    /* Save the chart's data as a JSON file. */
+    function downloadData() {
+        const data = { format: DATA_FORMAT, version: DATA_VERSION, chart };
+        download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), 'json');
+    }
+
+    /* Throw an error to show the user if a check on an imported file fails. */
+    function ensure(condition, message) {
+        if (!condition) throw new Error(message);
+    }
+
+    /* Return whether a value is a real date in YYYY-MM-DD format. */
+    function isDate(value) {
+        if (typeof value !== 'string' || !/^[1-9]\d{3}-\d{2}-\d{2}$/.test(value)) return false;
+        const parsed = new Date(`${value}T00:00:00Z`);
+        return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+    }
+
+    /* Return an optional date from an imported file, which must be valid if present. */
+    function optionalDate(value, name) {
+        if (value === null || value === undefined || value === '') return null;
+        ensure(isDate(value), `"${name}" has an invalid date: ${value}`);
+        return value;
+    }
+
+    /* Return an imported value as text of at most a given length. */
+    function cleanText(value, length) {
+        return typeof value === 'string' ? value.slice(0, length) : '';
+    }
+
+    /* Return whether a value is a whole number in a range. */
+    function isWhole(value, min, max) {
+        return Number.isInteger(value) && value >= min && value <= max;
+    }
+
+    /* Return a checked copy of an imported people type. */
+    function cleanType(type) {
+        ensure(type && typeof type.id === 'string' && type.id, 'A people type has no ID.');
+        ensure(isWhole(type.limit, 1, 999), `People type "${type.id}" needs a limit of at least 1.`);
+        return {
+            id: type.id,
+            abbr: cleanText(type.abbr, 8) || type.id.slice(0, 8),
+            name: cleanText(type.name, 80) || type.id,
+            color: Object.hasOwn(TEAM_COLORS, type.color) ? type.color : 'grey',
+            limit: type.limit,
+        };
+    }
+
+    /* Return a checked copy of an imported row, dropping links to things that don't exist. */
+    function cleanRow(row, typeIds, dependable) {
+        const name = cleanText(row.name, 200);
+        if (row.kind === 'group') {
+            return { id: row.id, kind: 'group', name, collapsed: !!row.collapsed };
+        }
+        ensure(row.deps === undefined || Array.isArray(row.deps), `"${name}" has invalid dependencies.`);
+        const shared = {
+            id: row.id,
+            kind: row.kind,
+            name,
+            deps: [...new Set(row.deps || [])].filter(id => dependable.has(id) && id !== row.id),
+            notBefore: optionalDate(row.notBefore, name),
+        };
+        if (row.kind === 'milestone') {
+            return { ...shared, target: optionalDate(row.target, name) };
+        }
+        ensure(isWhole(row.days, 1, MAX_DAYS), `"${name}" needs a duration between 1 and ${MAX_DAYS} days.`);
+        ensure(row.needs === undefined || (row.needs && typeof row.needs === 'object'), `"${name}" has invalid people.`);
+        const needs = Object.entries(row.needs || {}).filter(([type, count]) => {
+            ensure(isWhole(count, 0, MAX_NEEDED), `"${name}" has an invalid people count.`);
+            return typeIds.has(type) && count > 0;
+        });
+        return {
+            ...shared,
+            days: row.days,
+            needs: Object.fromEntries(needs),
+            label: cleanText(row.label, 80) || null,
+        };
+    }
+
+    /* Parse and check the text of a data file, returning a chart or throwing an error. */
+    function parseChart(text) {
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (error) {
+            throw new Error("That file isn't valid JSON.");
+        }
+        ensure(data && typeof data === 'object', "That file isn't a Gantt chart.");
+        ensure(data.format === undefined || data.format === DATA_FORMAT, "That file isn't a Gantt chart.");
+        ensure(!(data.version > DATA_VERSION), 'That file was made by a newer version of this tool.');
+
+        const source = data.chart || data;
+        ensure(isDate(source.start), 'The chart needs a valid start date.');
+        for (const key of ['types', 'rows', 'excluded']) {
+            ensure(Array.isArray(source[key]), `The chart is missing its "${key}" list.`);
+        }
+        ensure(source.rows.length <= MAX_ROWS, `A chart can have at most ${MAX_ROWS} rows.`);
+        ensure(source.types.length <= MAX_TYPES, `A chart can have at most ${MAX_TYPES} people types.`);
+        ensure(source.excluded.length <= MAX_EXCLUDED, `A chart can have at most ${MAX_EXCLUDED} weeks off.`);
+
+        const types = source.types.map(cleanType);
+        const typeIds = new Set(types.map(type => type.id));
+        ensure(typeIds.size === types.length, 'Two people types share an ID.');
+
+        const rowIds = new Set();
+        const dependable = new Set();
+        for (const row of source.rows) {
+            ensure(row && typeof row.id === 'string' && row.id, 'A row has no ID.');
+            ensure(['group', 'task', 'milestone'].includes(row.kind), `Row "${row.id}" has an unknown kind.`);
+            ensure(!rowIds.has(row.id), `Two rows share the ID "${row.id}".`);
+            rowIds.add(row.id);
+            if (row.kind !== 'group') dependable.add(row.id);
+        }
+
+        const imported = {
+            title: cleanText(source.title, 200) || 'Untitled chart',
+            start: source.start,
+            excluded: source.excluded.map(entry => {
+                ensure(entry && isDate(entry.week), 'A week off has an invalid date.');
+                return { week: entry.week, label: cleanText(entry.label, 60) };
+            }),
+            types,
+            rows: source.rows.map(row => cleanRow(row, typeIds, dependable)),
+        };
+        ensure(new Blob([JSON.stringify(imported)]).size <= MAX_BYTES, 'That chart is too large to save.');
+        return imported;
+    }
+
+    /* Replace the chart with the contents of a data file, after confirmation. */
+    async function importData(file) {
+        let imported;
+        try {
+            imported = parseChart(await file.text());
+        } catch (error) {
+            showDialog('Import failed', h('p', { class: 'g-hint', text: error.message }), [
+                { text: 'OK', primary: true, action: closeDialog },
+            ]);
+            return;
+        }
+        const message = `Replace this chart with "${imported.title}" (${imported.rows.length} rows)? ` +
+            'Everything in the current chart will be overwritten for anyone using this link.';
+        if (!confirm(message)) return;
+        Object.assign(chart, imported);
+        rememberChart();
+        commit();
+    }
+
     /* ── Interaction ── */
 
     /* Open the right editor for a row. */
@@ -1332,6 +1498,14 @@
     document.getElementById('open-timeline').addEventListener('click', openTimeline);
     document.getElementById('export-svg').addEventListener('click', downloadSvg);
     document.getElementById('export-png').addEventListener('click', downloadPng);
+    document.getElementById('export-data').addEventListener('click', downloadData);
+    const importInput = document.getElementById('import-file');
+    document.getElementById('import-data').addEventListener('click', () => importInput.click());
+    importInput.addEventListener('change', () => {
+        const [file] = importInput.files;
+        if (file) importData(file);
+        importInput.value = '';
+    });
 
     rememberChart();
     refresh();

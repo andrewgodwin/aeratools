@@ -25,12 +25,15 @@
     </div>
 </div>
 <dialog class="g-dialog" id="dialog"></dialog>
+<input type="file" id="import-file" accept=".json,application/json" hidden>
 {% endblock %}
 {% block prefs %}
 <button class="prefs-toggle" id="open-people"><i class="bi-people"></i> People types&hellip;</button>
 <button class="prefs-toggle" id="open-timeline"><i class="bi-calendar-week"></i> Timeline &amp; holidays&hellip;</button>
 <button class="prefs-toggle" id="export-png"><i class="bi-image"></i> Download PNG</button>
 <button class="prefs-toggle" id="export-svg"><i class="bi-filetype-svg"></i> Download SVG</button>
+<button class="prefs-toggle" id="export-data"><i class="bi-download"></i> Download data (JSON)</button>
+<button class="prefs-toggle" id="import-data"><i class="bi-upload"></i> Import data&hellip;</button>
 {% endblock %}
 {% block scripts %}
 <script>
